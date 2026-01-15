@@ -6,32 +6,32 @@ using WebApplication1.Services.interfaces;
 
 namespace WebApplication1.Services
 {
-    public class CatagoryService : ICatagoryService
+    public class CategoryService : ICategoryService
     {
         private readonly IDbConnection _db;
 
         // Inject IDbConnection từ Program.cs để kết nối MySQL
-        public CatagoryService(IDbConnection db)
+        public CategoryService(IDbConnection db)
         {
             _db = db;
         }
 
         // 1. Lấy toàn bộ danh sách từ bảng categories
-        public async Task<IEnumerable<CatagoryDTO>> GetAllAsync()
+        public async Task<IEnumerable<CategoryDTO>> GetAllAsync()
         {
             string sql = "SELECT * FROM categories";
-            return await _db.QueryAsync<CatagoryDTO>(sql);
+            return await _db.QueryAsync<CategoryDTO>(sql);
         }
 
         // 2. Lấy chi tiết một danh mục theo Id
-        public async Task<CatagoryDTO?> GetByIdAsync(int id)
+        public async Task<CategoryDTO?> GetByIdAsync(int id)
         {
             string sql = "SELECT * FROM categories WHERE Id = @id";
-            return await _db.QueryFirstOrDefaultAsync<CatagoryDTO>(sql, new { id });
+            return await _db.QueryFirstOrDefaultAsync<CategoryDTO>(sql, new { id });
         }
 
         // 3. Thêm mới danh mục vào DB
-        public async Task<int> AddAsync(CatagoryDTO category)
+        public async Task<int> AddAsync(CategoryDTO category)
         {
             // MySQL sẽ tự tăng Id nên chúng ta không chèn cột Id vào đây
             string sql = "INSERT INTO categories (Name, Description) VALUES (@Name, @Description)";
@@ -39,7 +39,7 @@ namespace WebApplication1.Services
         }
 
         // 4. Cập nhật thông tin danh mục
-        public async Task<int> UpdateAsync(CatagoryDTO category)
+        public async Task<int> UpdateAsync(CategoryDTO category)
         {
             string sql = "UPDATE categories SET Name = @Name, Description = @Description WHERE Id = @Id";
             return await _db.ExecuteAsync(sql, category);
@@ -53,10 +53,10 @@ namespace WebApplication1.Services
         }
 
         // 6. Tìm kiếm danh mục theo tên
-        public async Task<IEnumerable<CatagoryDTO>> SearchAsync(string keyword)
+        public async Task<IEnumerable<CategoryDTO>> SearchAsync(string keyword)
         {
             string sql = "SELECT * FROM categories WHERE Name LIKE @key";
-            return await _db.QueryAsync<CatagoryDTO>(sql, new { key = $"%{keyword}%" });
+            return await _db.QueryAsync<CategoryDTO>(sql, new { key = $"%{keyword}%" });
         }
     }
 }

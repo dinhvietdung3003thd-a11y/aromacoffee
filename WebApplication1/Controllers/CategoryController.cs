@@ -10,49 +10,49 @@ namespace WebApplication1.Controllers
     [Route("api/[controller]")]
     public class CategoriesController : ControllerBase
     {
-        private readonly ICatagoryService _catagoryService;
+        private readonly ICategoryService _categoryService;
 
-        public CategoriesController(ICatagoryService catagoryService)
+        public CategoriesController(ICategoryService categoryService)
         {
-            _catagoryService = catagoryService;
+            _categoryService = categoryService;
         }
 
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            return Ok(await _catagoryService.GetAllAsync());
+            return Ok(await _categoryService.GetAllAsync());
         }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
-            var category = await _catagoryService.GetByIdAsync(id);
+            var category = await _categoryService.GetByIdAsync(id);
             return category == null ? NotFound() : Ok(category);
         }
 
         [HttpGet("search")]
         public async Task<IActionResult> Search([FromQuery] string q)
         {
-            return Ok(await _catagoryService.SearchAsync(q));
+            return Ok(await _categoryService.SearchAsync(q));
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] CatagoryCreateDTO input)
+        public async Task<IActionResult> Create([FromBody] CategoryCreateDTO input)
         {
-            var catagorydto = new CatagoryDTO
+            var categorydto = new CategoryDTO
             {
                 Description = input.Description,
                 Name = input.Name,
             };
 
-            await _catagoryService.AddAsync(catagorydto);
-            return CreatedAtAction(nameof(GetById), new { id = catagorydto.Id }, catagorydto);
+            await _categoryService.AddAsync(categorydto);
+            return CreatedAtAction(nameof(GetById), new { id = categorydto.Id }, categorydto);
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            await _catagoryService  .DeleteAsync(id);
+            await _categoryService  .DeleteAsync(id);
             return NoContent();
         }
     }

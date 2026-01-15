@@ -1,8 +1,7 @@
-﻿namespace WebApplication1.Models
+﻿namespace WebApplication1.DTOs.categorys
 {
-    public class Catagory
+    public class CategoryCreateDTO
     {
-        public int Id { get; set; } // Auto increment
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
     }
