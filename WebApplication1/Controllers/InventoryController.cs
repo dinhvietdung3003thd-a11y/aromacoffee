@@ -18,4 +18,17 @@ public class InventoryController : ControllerBase
         if (result) return Ok(new { message = "Xử lý giao dịch kho thành công!" });
         return BadRequest(new { message = "Lỗi khi xử lý giao dịch kho!" });
     }
+    [HttpGet("report/summary")]
+    public async Task<IActionResult> GetSummary([FromQuery] int month, [FromQuery] int year)
+    {
+        var report = await _inventoryService.GetMonthlySummaryAsync(month, year);
+        return Ok(report);
+    }
+
+    [HttpGet("report/supplier-spend")]
+    public async Task<IActionResult> GetSupplierSpend([FromQuery] int month, [FromQuery] int year)
+    {
+        var report = await _inventoryService.GetSupplierSpendAsync(month, year);
+        return Ok(report);
+    }
 }

@@ -11,6 +11,7 @@
         public decimal Quantity { get; set; } 
         public DateTime TransactionDate { get; set; } = DateTime.Now; 
         public int UserId { get; set; } // ID nhân viên thực hiện
-        public string? Note { get; set; } 
+        public string? Note { get; set; }
+        public decimal Price { get; set; } 
     }
 }

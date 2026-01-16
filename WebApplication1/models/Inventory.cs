@@ -7,6 +7,7 @@
         public string Unit { get; set; } = string.Empty; 
         public decimal QuantityInStock { get; set; } 
         public decimal MinThreshold { get; set; } 
-        public DateTime UpdatedAt { get; set; } = DateTime.Now; 
+        public DateTime UpdatedAt { get; set; } = DateTime.Now;
+        public int? SupplierId { get; set; } 
     }
 }
