@@ -2,8 +2,8 @@
 {
     public class TableFood
     {
-        public int Id { get; set; }
+        public int TableId { get; set; }
         public string Name { get; set; } = string.Empty;
-        public string Status { get; set; } = "Trống"; // Mặc định là Trống 
+        public string Status { get; set; } = "Available"; // Mặc định là Trống 
     }
 }

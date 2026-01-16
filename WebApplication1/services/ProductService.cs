@@ -12,55 +12,49 @@ namespace WebApplication1.Services
 
         public async Task<IEnumerable<ProductDTO>> GetAllAsync()
         {
-            // JOIN với bảng categories để lấy CategoryName
-            string sql = @"SELECT p.*, c.Name AS CategoryName 
+            string sql = @"SELECT p.*, c.name AS CategoryName 
                            FROM products p 
-                           LEFT JOIN categories c ON p.CategoryId = c.Id";
+                           LEFT JOIN categories c ON p.category_id = c.category_id";
             return await _db.QueryAsync<ProductDTO>(sql);
         }
 
         public async Task<ProductDTO?> GetByIdAsync(int id)
         {
-            string sql = @"SELECT p.*, c.Name AS CategoryName 
+            string sql = @"SELECT p.*, c.name AS CategoryName 
                            FROM products p 
-                           LEFT JOIN categories c ON p.CategoryId = c.Id 
-                           WHERE p.Id = @id";
+                           LEFT JOIN categories c ON p.category_id = c.category_id 
+                           WHERE p.product_id = @id";
             return await _db.QueryFirstOrDefaultAsync<ProductDTO>(sql, new { id });
         }
 
         public async Task<int> AddAsync(ProductDTO dto)
         {
-            // KHÔNG chèn Id vì DB tự tăng. 
-            // Sau khi chèn, dùng LAST_INSERT_ID() để lấy ID vừa tạo.
-            string sql = @"INSERT INTO products (Name, Price, ImageUrl, Status, CategoryId) 
-                           VALUES (@Name, @Price, @ImageUrl, @Status, @CategoryId);
+            string sql = @"INSERT INTO products (name, price, image_url, is_available, category_id) 
+                           VALUES (@Name, @Price, @ImageUrl, @IsAvailable, @CategoryId);
                            SELECT LAST_INSERT_ID();";
-
             var id = await _db.ExecuteScalarAsync<int>(sql, dto);
-            dto.Id = id; // Gán ID mới vào DTO để trả về cho người dùng
+            dto.ProductId = id;
             return id;
         }
 
         public async Task<int> UpdateAsync(ProductDTO dto)
         {
             string sql = @"UPDATE products 
-                           SET Name=@Name, Price=@Price, ImageUrl=@ImageUrl, 
-                               Status=@Status, CategoryId=@CategoryId 
-                           WHERE Id=@Id";
+                           SET name=@Name, price=@Price, image_url=@ImageUrl, 
+                               is_available=@IsAvailable, category_id=@CategoryId 
+                           WHERE product_id=@ProductId";
             return await _db.ExecuteAsync(sql, dto);
         }
 
-        public async Task<int> DeleteAsync(int id)
-        {
-            return await _db.ExecuteAsync("DELETE FROM products WHERE Id=@id", new { id });
-        }
+        public async Task<int> DeleteAsync(int id) =>
+            await _db.ExecuteAsync("DELETE FROM products WHERE product_id=@id", new { id });
 
         public async Task<IEnumerable<ProductDTO>> SearchAsync(string keyword)
         {
-            string sql = @"SELECT p.*, c.Name AS CategoryName 
+            string sql = @"SELECT p.*, c.name AS CategoryName 
                            FROM products p 
-                           LEFT JOIN categories c ON p.CategoryId = c.Id 
-                           WHERE p.Name LIKE @key";
+                           LEFT JOIN categories c ON p.category_id = c.category_id 
+                           WHERE p.name LIKE @key";
             return await _db.QueryAsync<ProductDTO>(sql, new { key = $"%{keyword}%" });
         }
     }

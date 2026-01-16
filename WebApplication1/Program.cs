@@ -5,6 +5,8 @@ using WebApplication1.Models;
 using WebApplication1.services;
 using WebApplication1.services.interfaces;
 using WebApplication1.Services;
+using WebApplication1.Services.interfaces;
+Dapper.DefaultTypeMap.MatchNamesWithUnderscores = true;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,6 +19,10 @@ builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 
 builder.Services.AddScoped<ITableService, TableService>();
+
+builder.Services.AddScoped<IInventoryService, InventoryService>();
+
+builder.Services.AddScoped<IInventoryTransactionService, InventoryTransactionService>();
 // 1. Lấy chuỗi kết nối từ appsettings.json
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 

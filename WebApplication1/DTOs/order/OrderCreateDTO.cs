@@ -4,8 +4,9 @@
     {
         public DateTime OrderDate { get; set; } = DateTime.Now;
         public decimal? TotalAmount { get; set; }
-        public int? TableNumber { get; set; }
+        public int? TableId { get; set; }
         public string? Status { get; set; }
-        public string? CreatedBy { get; set; } // Username người tạo
+        public int? UserId { get; set; } // Username người tạo
+        public List<OrderDetailCreateDTO> Details { get; set; } = new();
     }
 }

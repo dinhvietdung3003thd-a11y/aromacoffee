@@ -46,7 +46,7 @@ namespace WebApplication1.Controllers
             };
 
             await _categoryService.AddAsync(categorydto);
-            return CreatedAtAction(nameof(GetById), new { id = categorydto.Id }, categorydto);
+            return CreatedAtAction(nameof(GetById), new { id = categorydto.CategoryId }, categorydto);
         }
 
         [HttpDelete("{id}")]
