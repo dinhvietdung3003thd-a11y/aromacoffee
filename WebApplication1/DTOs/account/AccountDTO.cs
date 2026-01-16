@@ -9,5 +9,6 @@
 
         // Bạn có thể thêm Token vào đây nếu sau này dùng JWT
         public string? Token { get; set; }
+        public int UserId { get; set; }
     }
 }

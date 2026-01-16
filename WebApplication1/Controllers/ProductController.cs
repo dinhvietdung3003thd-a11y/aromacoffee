@@ -31,18 +31,18 @@ namespace WebApplication1.Controllers
                 Price = input.Price,
                 CategoryId = input.CategoryId,
                 ImageUrl = input.ImageUrl,
-                Status = input.Status,
+                IsAvailable = input.IsAvailable,
             };
 
             await _productService.AddAsync(productDto);
-            return CreatedAtAction(nameof(GetById), new { id = productDto.Id }, productDto);
+            return CreatedAtAction(nameof(GetById), new { id = productDto.ProductId }, productDto);
         }
 
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, ProductUpdateDTO input)
         {
             // 1. Kiểm tra an toàn: ID trên URL phải khớp với ID trong gói tin gửi lên
-            if (id != input.Id)
+            if (id != input.ProductId)
             {
                 return BadRequest("Mã sản phẩm không khớp!");
             }
@@ -50,11 +50,11 @@ namespace WebApplication1.Controllers
             // 2. Chuyển đổi sang ProductDTO để gọi Service
             var productDto = new ProductDTO
             {
-                Id = input.Id,
+                ProductId = input.ProductId,
                 Name = input.Name,
                 Price = input.Price,
                 ImageUrl = input.ImageUrl,
-                Status = input.Status,
+                IsAvailable = input.IsAvailable,
                 CategoryId = input.CategoryId
             };
 

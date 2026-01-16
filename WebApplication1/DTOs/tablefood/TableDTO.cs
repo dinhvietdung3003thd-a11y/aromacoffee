@@ -1,9 +1,6 @@
-﻿namespace WebApplication1.DTOs
+﻿public class TableDTO
 {
-    public class TableDTO
-    {
-        public int Id { get; set; }
-        public string Name { get; set; } = string.Empty;
-        public string Status { get; set; } = "Trống";
-    }
+    public int TableId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Status { get; set; } = "Available"; // Khớp với ENUM SQL
 }

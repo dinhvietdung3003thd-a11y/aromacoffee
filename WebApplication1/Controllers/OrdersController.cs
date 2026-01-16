@@ -56,9 +56,9 @@ namespace WebApplication1.Controllers
             {
                 OrderDate = input.OrderDate,
                 TotalAmount = input.TotalAmount,
-                TableNumber = input.TableNumber,
+                TableId = input.TableId,
                 Status = input.Status,
-                CreatorFullName = input.CreatedBy // Tạm gán vào đây để Service xử lý
+                UserId = input.UserId // Tạm gán vào đây để Service xử lý
             };
 
             int newId = await _orderService.AddAsync(orderDto);
@@ -69,13 +69,22 @@ namespace WebApplication1.Controllers
 
         // 6. Cập nhật thông tin đơn hàng
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody] OrderDisplayDTO orderDto)
+        public async Task<IActionResult> Update(int id, [FromBody] OrderUpdateDTO input)
         {
-            if (id != orderDto.Id)
-                return BadRequest(new { message = "ID không khớp" });
+            // Kiểm tra an toàn: ID trên đường dẫn phải khớp với dữ liệu gửi lên
+            // Gán id từ URL vào thuộc tính OrderId của DTO để Service sử dụng
+            input.OrderId = id;
 
-            await _orderService.UpdateAsync(orderDto);
-            return Ok(new { message = "Cập nhật đơn hàng thành công" });
+            try
+            {
+                // Service sẽ xóa các món cũ và chèn lại các món mới trong Details
+                await _orderService.UpdateAsync(input);
+                return Ok(new { message = "Cập nhật đơn hàng và chi tiết món thành công!" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi khi cập nhật: " + ex.Message });
+            }
         }
 
         // 7. Cập nhật riêng trạng thái (Ví dụ: Chuyển sang "Đã thanh toán")

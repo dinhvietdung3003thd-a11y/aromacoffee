@@ -2,11 +2,13 @@
 {
     public class Order
     {
-        public int Id { get; set; }
+        public int OrderId { get; set; }
         public DateTime OrderDate { get; set; }
-        public decimal? TotalAmount { get; set; }
-        public string? CreatedBy { get; set; } // Username người tạo
-        public int? TableNumber { get; set; }
+        public decimal TotalAmount { get; set; }
+        public int userId { get; set; } // ID người tạo
+        public int? TableId { get; set; }
         public string? Status { get; set; }
+        public int? CustomerId { get; set; }
+        public string? Note { get; set; }
     }
 }
