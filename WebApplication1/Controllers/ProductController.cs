@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Nest;
 using WebApplication1.DTOs.product;
 using WebApplication1.Services.interfaces;
+using Microsoft.AspNetCore.Authorization;
 
 namespace WebApplication1.Controllers
 {
@@ -9,8 +11,12 @@ namespace WebApplication1.Controllers
     public class ProductController : ControllerBase
     {
         private readonly IProductService _productService;
-        public ProductController(IProductService productService) => _productService = productService;
-
+        private readonly IElasticClient _elasticClient;
+        public ProductController(IProductService productService, IElasticClient elasticClient)
+        {
+            _productService = productService;
+            _elasticClient = elasticClient;
+        }
         [HttpGet]
         public async Task<IActionResult> GetAll() => Ok(await _productService.GetAllAsync());
 
@@ -22,6 +28,7 @@ namespace WebApplication1.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Create(ProductCreateDTO input) // Dùng DTO mới ở đây
         {
             // Chuyển đổi từ DTO sang Model/DTO gốc để gửi xuống Service
@@ -39,6 +46,7 @@ namespace WebApplication1.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Update(int id, ProductUpdateDTO input)
         {
             // 1. Kiểm tra an toàn: ID trên URL phải khớp với ID trong gói tin gửi lên
@@ -65,10 +73,26 @@ namespace WebApplication1.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int id)
         {
             await _productService.DeleteAsync(id);
             return Ok(new { message = "Xóa thành công" });
+        }
+
+        [HttpPost("sync-to-elastic")]
+        public async Task<IActionResult> SyncToElastic()
+        {
+            // Lấy tất cả sản phẩm hiện có từ MySQL
+            var products = await _productService.GetAllAsync();
+
+            // Đẩy hàng loạt (Bulk Index) vào Elasticsearch
+            var response = await _elasticClient.IndexManyAsync(products);
+
+            if (response.IsValid)
+                return Ok(new { message = "Đã đồng bộ toàn bộ sản phẩm sang Elasticsearch!" });
+
+            return BadRequest(new { message = "Lỗi khi đồng bộ dữ liệu." });
         }
     }
 }

@@ -1,6 +1,9 @@
 ﻿using Dapper;
+using Nest;
 using System.Data;
 using WebApplication1.DTOs.order;
+using WebApplication1.DTOs.product;
+using WebApplication1.Models;
 using WebApplication1.services.interfaces;
 using WebApplication1.Services.interfaces;
 
@@ -9,7 +12,12 @@ namespace WebApplication1.Services
     public class OrderService : IOrderService
     {
         private readonly IDbConnection _db;
-        public OrderService(IDbConnection db) => _db = db;
+        private readonly IElasticClient _elasticClient;
+        public OrderService(IDbConnection db, IElasticClient elasticClient)
+        {
+            _db = db;
+            _elasticClient = elasticClient;
+        }
 
         public async Task<IEnumerable<OrderDisplayDTO>> GetAllAsync()
         {
@@ -33,6 +41,8 @@ namespace WebApplication1.Services
                              FROM order_details od
                              JOIN products p ON od.product_id = p.product_id
                              WHERE od.order_id = @id";
+                var details = await _db.QueryAsync<OrderDetailDTO>(detailSql, new { id });
+                order.Details = details.ToList();
             }
             return order;
         }
@@ -158,11 +168,44 @@ namespace WebApplication1.Services
                                     Note = $"Xuất kho tự động cho đơn hàng #{dto.OrderId}"
                                 }, transaction);
 
-                                // Cập nhật số lượng tồn kho thực tế
+                                // Cập nhật số lượng tồn kho thực tế 
                                 string updateInvSql = @"UPDATE inventory 
                                                SET quantity_in_stock = quantity_in_stock - @Qty 
                                                WHERE inventory_id = @InvId";
                                 await _db.ExecuteAsync(updateInvSql, new { Qty = totalDeduct, InvId = ing.inventory_id }, transaction);
+                                // KIỂM TRA VÀ CẬP NHẬT TRẠNG THÁI SẢN PHẨM (LOGIC MỚI)
+                                // Lấy thông tin tồn kho mới nhất để kiểm tra mức cảnh báo
+                                var inventory = await _db.QueryFirstOrDefaultAsync<Inventory>(
+                                    "SELECT * FROM inventory WHERE inventory_id = @id",
+                                    new { id = ing.inventory_id }, transaction);
+
+                                if (inventory != null && inventory.QuantityInStock <= 0)
+                                {
+                                    // Tìm tất cả sản phẩm sử dụng nguyên liệu vừa hết này
+                                    var affectedProductIds = await _db.QueryAsync<int>(
+                                        "SELECT product_id FROM recipes WHERE inventory_id = @id",
+                                        new { id = ing.inventory_id }, transaction);
+
+                                    foreach (var productId in affectedProductIds)
+                                    {
+                                        // Cập nhật MySQL: Đánh dấu món ăn này là Tạm hết hàng
+                                        await _db.ExecuteAsync(
+                                            "UPDATE products SET is_available = 0 WHERE product_id = @pid",
+                                            new { pid = productId }, transaction);
+
+                                        // Cập nhật Elasticsearch: Để khách hàng tìm kiếm thấy ngay là đã hết hàng
+                                        // Lấy dữ liệu ProductDTO đầy đủ để đẩy lên ES
+                                        var productDto = await _db.QueryFirstOrDefaultAsync<ProductDTO>(
+                                            @"SELECT p.*, c.name AS CategoryName 
+                                            FROM products p LEFT JOIN categories c ON p.category_id = c.category_id 
+                                            WHERE p.product_id = @pid", new { pid = productId }, transaction);
+
+                                        if (productDto != null)
+                                        {
+                                            await _elasticClient.IndexDocumentAsync(productDto);
+                                        }
+                                    }
+                                }
                             }
                         }
                     }

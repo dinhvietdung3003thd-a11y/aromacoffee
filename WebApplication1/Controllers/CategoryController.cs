@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using WebApplication1.DTOs.categorys;
 using WebApplication1.Models;
 using WebApplication1.Services;
@@ -37,6 +38,7 @@ namespace WebApplication1.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Create([FromBody] CategoryCreateDTO input)
         {
             var categorydto = new CategoryDTO
@@ -50,6 +52,7 @@ namespace WebApplication1.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int id)
         {
             await _categoryService  .DeleteAsync(id);

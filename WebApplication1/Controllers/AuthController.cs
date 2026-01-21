@@ -21,7 +21,7 @@ public class AuthController : Controller
 
         if (result == null)
             return Unauthorized(new { message = "Sai tài khoản hoặc mật khẩu" });
-
+        
         return Ok(result);
     }
 
@@ -29,7 +29,7 @@ public class AuthController : Controller
     public async Task<IActionResult> Register([FromBody] RegisterRequest request)
     {
         var result = await _authService.RegisterAsync(request);
-        if (result == null) return BadRequest("Tên tài khoản đã tồn tại");
+        if (result == 0) return BadRequest("Tên tài khoản đã tồn tại");
         return Ok(new { message = "Đăng ký nhân viên thành công" });
     }
 
