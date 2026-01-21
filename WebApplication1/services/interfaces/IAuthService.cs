@@ -4,7 +4,7 @@ namespace WebApplication1.services.interfaces
 {
     public interface IAuthService
     {
-        Task<AccountDTO?> LoginAsync(LoginRequest request);
+        Task<object?> LoginAsync(LoginRequest request);
         Task<int> RegisterAsync( RegisterRequest request);
 
         Task<CustomerAccountDTO?> CustomerLoginAsync(LoginRequest request);
