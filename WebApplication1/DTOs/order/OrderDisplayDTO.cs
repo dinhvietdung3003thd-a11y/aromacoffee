@@ -11,6 +11,5 @@
         // Lấy tên đầy đủ của nhân viên từ bảng accounts qua CreatedBy
         public string? CreatorFullName { get; set; }
         public int? UserId { get; set; }
-        public List<OrderDetailDTO> Details { get; set; } = new List<OrderDetailDTO>();
     }
 }
