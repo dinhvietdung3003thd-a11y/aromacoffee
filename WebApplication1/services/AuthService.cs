@@ -20,7 +20,33 @@ namespace WebApplication1.services
             return BitConverter.ToString(bytes).Replace("-", "").ToLower();
         }
 
-        public async Task<AccountDTO?> LoginAsync(LoginRequest request)
+            // So sánh chuỗi vừa băm với chuỗi trong Database (không phân biệt hoa thường)
+            return string.Equals(hashedInput, hashedPasswordFromDb, StringComparison.OrdinalIgnoreCase);
+        }
+        private string GenerateJwtToken(Account user)
+        {
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var key = Encoding.UTF8.GetBytes(_configuration["Jwt:Key"] ?? "Chuoi_Key_Bao_Mat_Cua_Aroma_Cafe_2026");
+
+            var tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Subject = new ClaimsIdentity(new[]
+                {
+            new Claim(ClaimTypes.Name, user.Username),
+            new Claim(ClaimTypes.Role, user.Role ?? "Staff")
+        }),
+                Expires = DateTime.UtcNow.AddDays(7),
+                SigningCredentials = new SigningCredentials(
+                    new SymmetricSecurityKey(key),
+                    SecurityAlgorithms.HmacSha256Signature)
+            };
+
+            var token = tokenHandler.CreateToken(tokenDescriptor);
+            return tokenHandler.WriteToken(token);
+        }
+
+        // 1. Đổi kiểu trả về thành Task<object?>
+        public async Task<object?> LoginAsync(LoginRequest request)
         {
             string hashedInput = HashPassword(request.Password);
             string sql = "SELECT * FROM users WHERE username = @u AND password_hash = @p AND is_active = 1";
@@ -28,13 +54,20 @@ namespace WebApplication1.services
             var user = await _db.QueryFirstOrDefaultAsync<Account>(sql, new { u = request.Username, p = hashedInput });
             if (user == null) return null;
 
-            return new AccountDTO
+            // 2. Tạo Token bằng hàm nội bộ đã viết
+            var token = GenerateJwtToken(user);
+
+            // 3. Trả về đối tượng ẩn danh (Anonymous Object) chứa cả Token
+            return new
             {
-                UserId = user.UserId,
-                Username = user.Username,
-                FullName = user.FullName,
-                Role = user.Role,
-                PhoneNumber = user.PhoneNumber
+                Token = token, // Đây là phần quan trọng nhất để phân quyền
+                User = new
+                {
+                    user.UserId,
+                    user.FullName,
+                    user.Role, // Vai trò Admin/Staff để kiểm tra quyền
+                    user.PhoneNumber
+                }
             };
         }
         public async Task<int> RegisterAsync(RegisterRequest request)
