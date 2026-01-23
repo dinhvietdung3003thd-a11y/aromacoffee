@@ -1,8 +1,5 @@
 ﻿using Dapper;
-using Microsoft.IdentityModel.Tokens;
 using System.Data;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using WebApplication1.DTOs.account;
@@ -14,23 +11,14 @@ namespace WebApplication1.services
     public class AuthService : IAuthService
     {
         private readonly IDbConnection _db;
-        private readonly IConfiguration _configuration;
-        public AuthService(IDbConnection db, IConfiguration configuration)
-        {
-            _db = db;
-            _configuration = configuration;
-        }
-            
+        public AuthService(IDbConnection db) => _db = db;
+
         private string HashPassword(string password)
         {
             using var sha256 = SHA256.Create();
             byte[] bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
             return BitConverter.ToString(bytes).Replace("-", "").ToLower();
         }
-        private bool VerifyPassword(string inputPassword, string hashedPasswordFromDb)
-        {
-            // Băm mật khẩu người dùng vừa nhập
-            string hashedInput = HashPassword(inputPassword);
 
             // So sánh chuỗi vừa băm với chuỗi trong Database (không phân biệt hoa thường)
             return string.Equals(hashedInput, hashedPasswordFromDb, StringComparison.OrdinalIgnoreCase);
@@ -64,8 +52,6 @@ namespace WebApplication1.services
             string sql = "SELECT * FROM users WHERE username = @u AND password_hash = @p AND is_active = 1";
 
             var user = await _db.QueryFirstOrDefaultAsync<Account>(sql, new { u = request.Username, p = hashedInput });
-            if (user == null || !VerifyPassword(request.Password, user.PasswordHash))
-                return null;
             if (user == null) return null;
 
             // 2. Tạo Token bằng hàm nội bộ đã viết

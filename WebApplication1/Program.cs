@@ -8,7 +8,6 @@ using WebApplication1.services;
 using WebApplication1.services.interfaces;
 using WebApplication1.Services;
 using WebApplication1.Services.interfaces;
-
 Dapper.DefaultTypeMap.MatchNamesWithUnderscores = true;
 
 var builder = WebApplication.CreateBuilder(args);
