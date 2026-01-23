@@ -38,17 +38,16 @@ namespace WebApplication1.services
         private string GenerateJwtToken(Account user)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
-            // Lấy Key bảo mật từ cấu hình
-            var key = Encoding.ASCII.GetBytes(_configuration["Jwt:Key"] ?? "Chuoi_Key_Bao_Mat_Cua_Aroma_Cafe_2026");
+            var key = Encoding.UTF8.GetBytes(_configuration["Jwt:Key"] ?? "Chuoi_Key_Bao_Mat_Cua_Aroma_Cafe_2026");
 
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(new[]
                 {
-                new Claim(ClaimTypes.Name, user.Username),
-                new Claim(ClaimTypes.Role, user.Role ?? "Staff") // Nếu null thì lấy giá trị "Staff" // Đưa vai trò (Admin/Staff) vào Token
-            }),
-                Expires = DateTime.UtcNow.AddDays(7), // Token có hiệu lực trong 7 ngày
+            new Claim(ClaimTypes.Name, user.Username),
+            new Claim(ClaimTypes.Role, user.Role ?? "Staff")
+        }),
+                Expires = DateTime.UtcNow.AddDays(7),
                 SigningCredentials = new SigningCredentials(
                     new SymmetricSecurityKey(key),
                     SecurityAlgorithms.HmacSha256Signature)
@@ -62,7 +61,6 @@ namespace WebApplication1.services
         public async Task<object?> LoginAsync(LoginRequest request)
         {
             string hashedInput = HashPassword(request.Password);
-            // Lưu ý: Đảm bảo tên bảng là 'users' hay 'accounts' khớp với database của bạn
             string sql = "SELECT * FROM users WHERE username = @u AND password_hash = @p AND is_active = 1";
 
             var user = await _db.QueryFirstOrDefaultAsync<Account>(sql, new { u = request.Username, p = hashedInput });
@@ -73,14 +71,13 @@ namespace WebApplication1.services
             // 2. Tạo Token bằng hàm nội bộ đã viết
             var token = GenerateJwtToken(user);
 
-            // 3. SỬA PHẦN NÀY: Trả về đối tượng ẩn danh (Anonymous Object) chứa cả Token
+            // 3. Trả về đối tượng ẩn danh (Anonymous Object) chứa cả Token
             return new
             {
                 Token = token, // Đây là phần quan trọng nhất để phân quyền
                 User = new
                 {
                     user.UserId,
-                    user.Username,
                     user.FullName,
                     user.Role, // Vai trò Admin/Staff để kiểm tra quyền
                     user.PhoneNumber
