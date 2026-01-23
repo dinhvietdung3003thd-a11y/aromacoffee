@@ -1,9 +1,9 @@
 ﻿using Dapper;
 using System.Data;
 using WebApplication1.DTOs.product;
-using WebApplication1.Services.interfaces;
+using WebApplication1.services.interfaces;
 
-namespace WebApplication1.Services
+namespace WebApplication1.services
 {
     public class ProductService : IProductService
     {

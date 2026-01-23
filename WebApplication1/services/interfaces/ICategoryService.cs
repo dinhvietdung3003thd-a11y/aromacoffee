@@ -1,4 +1,7 @@
 ﻿using WebApplication1.DTOs.categorys;
-using WebApplication1.Services.interfaces;
+namespace WebApplication1.services.interfaces
+{
+    public interface ICategoryService : IBaseService<CategoryDTO> { }
+}
 
-public interface ICategoryService : IBaseService<CategoryDTO> { }
+

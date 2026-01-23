@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using WebApplication1.Models;
-using WebApplication1.Services.interfaces;
+using WebApplication1.services.interfaces;
 
 [ApiController]
 [Route("api/[controller]")]

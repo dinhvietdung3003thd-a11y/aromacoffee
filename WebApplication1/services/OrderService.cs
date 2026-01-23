@@ -2,9 +2,8 @@
 using System.Data;
 using WebApplication1.DTOs.order;
 using WebApplication1.services.interfaces;
-using WebApplication1.Services.interfaces;
 
-namespace WebApplication1.Services
+namespace WebApplication1.services
 {
     public class OrderService : IOrderService
     {

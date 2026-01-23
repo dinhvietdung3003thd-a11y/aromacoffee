@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using WebApplication1.DTOs.inventory;
+using WebApplication1.services.interfaces;
 
 [ApiController]
 [Route("api/[controller]")]
