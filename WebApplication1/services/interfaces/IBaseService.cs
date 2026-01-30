@@ -1,4 +1,4 @@
-﻿namespace WebApplication1.Services.interfaces
+﻿namespace WebApplication1.services.interfaces
 {
     public interface IBaseService<T> where T : class
     {

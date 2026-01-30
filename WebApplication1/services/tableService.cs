@@ -3,7 +3,7 @@ using System.Data;
 using WebApplication1.DTOs;
 using WebApplication1.services.interfaces;
 
-namespace WebApplication1.Services
+namespace WebApplication1.services
 {
     public class TableService : ITableService
     {

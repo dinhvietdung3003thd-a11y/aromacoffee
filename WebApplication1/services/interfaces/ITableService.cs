@@ -1,5 +1,5 @@
 ﻿using WebApplication1.DTOs;
-using WebApplication1.Services.interfaces;
+using WebApplication1.services.interfaces;
 
 namespace WebApplication1.services.interfaces
 {

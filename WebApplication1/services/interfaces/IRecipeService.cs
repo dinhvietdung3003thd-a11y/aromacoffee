@@ -1,9 +1,7 @@
 ﻿using WebApplication1.DTOs.recipe;
 using WebApplication1.DTOs.recipes;
 using WebApplication1.Models;
-using WebApplication1.Services.interfaces;
-
-namespace WebApplication1.Services.interfaces
+namespace WebApplication1.services.interfaces
 {
     public interface IRecipeService : IBaseService<Recipe>
     {

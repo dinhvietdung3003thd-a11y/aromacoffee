@@ -1,5 +1,9 @@
 ﻿using Dapper;
+using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
 using System.Data;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using WebApplication1.DTOs.account;
@@ -11,7 +15,12 @@ namespace WebApplication1.services
     public class AuthService : IAuthService
     {
         private readonly IDbConnection _db;
-        public AuthService(IDbConnection db) => _db = db;
+        private readonly IConfiguration _configuration;
+        public AuthService(IDbConnection db, IConfiguration configuration)
+        {
+            _db = db;
+            _configuration = configuration;
+        }
 
         private string HashPassword(string password)
         {
@@ -20,7 +29,9 @@ namespace WebApplication1.services
             return BitConverter.ToString(bytes).Replace("-", "").ToLower();
         }
 
-            // So sánh chuỗi vừa băm với chuỗi trong Database (không phân biệt hoa thường)
+        // So sánh chuỗi vừa băm với chuỗi trong Database (không phân biệt hoa thường)
+        private bool VerifyPassword(string hashedInput, string hashedPasswordFromDb)
+        {
             return string.Equals(hashedInput, hashedPasswordFromDb, StringComparison.OrdinalIgnoreCase);
         }
         private string GenerateJwtToken(Account user)
