@@ -29,7 +29,7 @@ public class AuthController : Controller
     public async Task<IActionResult> Register([FromBody] RegisterRequest request)
     {
         var result = await _authService.RegisterAsync(request);
-        if (result == null) return BadRequest("Tên tài khoản đã tồn tại");
+        if (result == -1) return BadRequest("Tên tài khoản đã tồn tại");
         return Ok(new { message = "Đăng ký nhân viên thành công" });
     }
 

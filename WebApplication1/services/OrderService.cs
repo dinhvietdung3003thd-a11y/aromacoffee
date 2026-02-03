@@ -32,6 +32,9 @@ namespace WebApplication1.services
                              FROM order_details od
                              JOIN products p ON od.product_id = p.product_id
                              WHERE od.order_id = @id";
+                var details = await _db.QueryAsync<OrderDetailDTO>(detailSql, new { id });
+
+                order.Details = details.ToList();
             }
             return order;
         }

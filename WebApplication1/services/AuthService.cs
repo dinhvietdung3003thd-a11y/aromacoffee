@@ -56,7 +56,7 @@ namespace WebApplication1.services
             return tokenHandler.WriteToken(token);
         }
 
-        // 1. Đổi kiểu trả về thành Task<object?>
+        // Đổi kiểu trả về thành Task<object?>
         public async Task<object?> LoginAsync(LoginRequest request)
         {
             string hashedInput = HashPassword(request.Password);
@@ -131,7 +131,7 @@ namespace WebApplication1.services
 
         public async Task<CustomerAccountDTO?> CustomerLoginAsync(LoginRequest request)
         {
-            string hashedInput = HashPassword(request.Password); //
+            string hashedInput = HashPassword(request.Password); 
 
             // Truy vấn thông tin từ bảng khách hàng
             string sql = @"SELECT customer_id, username, full_name, loyalty_points 
