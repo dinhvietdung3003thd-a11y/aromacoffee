@@ -72,7 +72,6 @@ namespace WebApplication1.services
             return await _db.QueryFirstOrDefaultAsync<InventoryDisplayDTO>(sql, new { id });
         }
 
-        // Các hàm báo cáo của bạn đã khá ổn về mặt logic SQL
         public async Task<IEnumerable<InventorySummaryReportDTO>> GetMonthlySummaryAsync(int month, int year)
         {
             string sql = @"

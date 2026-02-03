@@ -53,7 +53,7 @@ public class AuthController : Controller
     }
     // vi du cho viec tao file view 
     // tao ham tai file controller r chuot phai ten ham tao file view 
-    //ae co the run tren web local de test xem no can nhap nhung cai j cho muc day ma thiet ke nhe 
+    //ae co the run tren web local de test xem no can nhap nhung cai j cho muc day ma thiet ke 
     [ApiExplorerSettings(IgnoreApi = true)]
     public IActionResult Index() { return View(); }
 }
