@@ -4,6 +4,5 @@
     public class OrderUpdateDTO : OrderCreateDTO
     {
         public int OrderId { get; set; } // Chỉ thêm trường này cho việc Update
-        public int? CustomerId { get; set; }
     }
 }

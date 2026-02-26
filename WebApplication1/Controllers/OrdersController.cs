@@ -52,19 +52,9 @@ namespace WebApplication1.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] OrderCreateDTO input)
         {
-            var orderDto = new OrderDisplayDTO
-            {
-                OrderDate = input.OrderDate,
-                TotalAmount = input.TotalAmount,
-                TableId = input.TableId,
-                Status = input.Status,
-                UserId = input.UserId // Tạm gán vào đây để Service xử lý
-            };
+            int newId = await _orderService.AddAsync(input);
 
-            int newId = await _orderService.AddAsync(orderDto);
-            orderDto.Id = newId; // Gán ID vừa tạo từ DB vào
-
-            return CreatedAtAction(nameof(GetById), new { id = newId }, orderDto);
+            return CreatedAtAction(nameof(GetById), new { id = newId }, input);
         }
 
         // 6. Cập nhật thông tin đơn hàng

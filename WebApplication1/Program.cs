@@ -80,7 +80,11 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
+// --- 6.Hubs ---
+builder.Services.AddSignalR();  
+
 var app = builder.Build();
+app.MapHub<WebApplication1.Hubs.OrderHub>("/orderHub");
 
 // --- 5. Pipeline Middleware  ---
 if (app.Environment.IsDevelopment())
