@@ -7,10 +7,13 @@
         public decimal? TotalAmount { get; set; }
         public int? TableId { get; set; }
         public string? Status { get; set; }
-
-        // Lấy tên đầy đủ của nhân viên từ bảng accounts qua CreatedBy
         public string? CreatorFullName { get; set; }
         public int? UserId { get; set; }
+        public string? ShippingAddress { get; set; }
+        public double? Lat { get; set; }
+        public double? Lng { get; set; }
+        public double? DistanceKm { get; set; }
+        public decimal? ShippingFee { get; set; }
         public List<OrderDetailDTO> Details { get; set; } = new List<OrderDetailDTO>();
     }
 }
