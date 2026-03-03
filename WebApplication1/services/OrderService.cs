@@ -60,6 +60,20 @@ namespace WebApplication1.services
             // Đảm bảo kết nối được mở trước khi bắt đầu Transaction
             if (_db.State != ConnectionState.Open) _db.Open();
 
+            if (dto.Details == null || dto.Details.Count == 0)
+                throw new ArgumentException("Order phải có ít nhất 1 sản phẩm.");
+
+            if (dto.Details.Any(d => d.Quantity <= 0))
+                throw new ArgumentException("Quantity phải lớn hơn 0.");
+
+            bool isDelivery = !string.IsNullOrWhiteSpace(dto.ShippingAddress);
+
+            if (isDelivery)
+            {
+                if (dto.ShippingFee is < 0) throw new ArgumentException("ShippingFee không hợp lệ.");
+                if (dto.DistanceKm is < 0) throw new ArgumentException("DistanceKm không hợp lệ.");
+            }
+
             using (var transaction = _db.BeginTransaction())
             {
                 try
@@ -87,13 +101,24 @@ namespace WebApplication1.services
 
                     foreach (var item in dto.Details)
                     {
+                        // Lấy giá thật từ DB
+                        var price = await _db.ExecuteScalarAsync<decimal>(
+                            "SELECT price FROM products WHERE product_id = @id",
+                            new { id = item.ProductId },
+                            transaction);
+
+                        if (price <= 0)
+                            throw new Exception("Sản phẩm không hợp lệ.");
+
+                        var subtotal = price * item.Quantity;
+
                         await _db.ExecuteAsync(detailSql, new
                         {
                             OrderId = orderId,
                             ProductId = item.ProductId,
                             Quantity = item.Quantity,
-                            UnitPrice = item.UnitPrice,
-                            Subtotal = item.Quantity * item.UnitPrice
+                            UnitPrice = price,
+                            Subtotal = subtotal
                         }, transaction);
                     }
 
@@ -102,8 +127,13 @@ namespace WebApplication1.services
                     if (dto.TableId.HasValue && dto.TableId > 0)
                     {
                         // Cập nhật trạng thái bàn thành 'Occupied' (Có người) trong bảng tables
-                        string updateTableSql = "UPDATE tables SET status = 'Occupied' WHERE table_id = @TableId";
-                        await _db.ExecuteAsync(updateTableSql, new { TableId = dto.TableId }, transaction);
+                        string updateTableSql = "UPDATE tables SET status = 'Occupied' WHERE table_id = @TableId AND status='Available'";
+                        var rowsAffected = await _db.ExecuteAsync(updateTableSql, new { TableId = dto.TableId }, transaction);
+                        if (rowsAffected == 0)
+                        {
+                            transaction.Rollback();
+                            throw new Exception("Bàn này đã có người đặt.");
+                        }
                     }
 
                     // 4. Xác nhận hoàn tất mọi thay đổi nếu không có lỗi
@@ -143,6 +173,27 @@ namespace WebApplication1.services
                          );
 
                     bool justCompleted = oldStatus != "Completed" && dto.Status == "Completed";
+
+                    // 0) Chặn update nếu trạng thái không đổi
+                    if (string.Equals(oldStatus, dto.Status, StringComparison.OrdinalIgnoreCase))
+                    {
+                        transaction.Rollback();
+                        throw new InvalidOperationException("Đơn hàng đã ở trạng thái này rồi.");
+                    }
+
+                    // 1) Chặn thay đổi trạng thái từ trạng thái kết thúc
+                    if (oldStatus == "Completed" || oldStatus == "Cancelled")
+                    {
+                        transaction.Rollback();
+                        throw new InvalidOperationException("Đơn hàng đã kết thúc, không thể đổi trạng thái nữa.");
+                    }
+
+                    // 2) Chỉ cho phép Pending -> Completed/Cancelled (vì DB của bạn chỉ có 3 trạng thái)
+                    if (oldStatus == "Pending" && dto.Status != "Completed" && dto.Status != "Cancelled")
+                    {
+                        transaction.Rollback();
+                        throw new InvalidOperationException("Chỉ cho phép chuyển Pending -> Completed hoặc Cancelled.");
+                    }
 
                     // 1. Cập nhật thông tin chung của đơn hàng
                     string sql = @"UPDATE orders SET 
@@ -223,8 +274,68 @@ namespace WebApplication1.services
         public async Task<int> DeleteAsync(int id) =>
             await _db.ExecuteAsync("DELETE FROM orders WHERE order_id = @id", new { id });
 
-        public async Task<int> UpdateStatusAsync(int id, string status) =>
-            await _db.ExecuteAsync("UPDATE orders SET status = @status WHERE order_id = @id", new { id, status });
+        public async Task<int> UpdateStatusAsync(int id, string status)
+        {
+            if (_db.State != ConnectionState.Open) _db.Open();
+
+            using var transaction = _db.BeginTransaction();
+            try
+            {
+                var oldStatus = await _db.ExecuteScalarAsync<string>(
+                    "SELECT status FROM orders WHERE order_id = @id",
+                    new { id },
+                    transaction
+                );
+
+                if (oldStatus == null)
+                {
+                    transaction.Rollback();
+                    throw new InvalidOperationException("Không tìm thấy đơn hàng.");
+                }
+
+                // chặn update trùng
+                if (string.Equals(oldStatus, status, StringComparison.OrdinalIgnoreCase))
+                {
+                    transaction.Rollback();
+                    throw new InvalidOperationException("Đơn hàng đã ở trạng thái này rồi.");
+                }
+
+                // chặn đổi từ trạng thái kết thúc
+                if (oldStatus == "Completed" || oldStatus == "Cancelled")
+                {
+                    transaction.Rollback();
+                    throw new InvalidOperationException("Đơn hàng đã kết thúc, không thể đổi trạng thái nữa.");
+                }
+
+                // chỉ cho Pending -> Completed/Cancelled
+                if (oldStatus == "Pending" && status != "Completed" && status != "Cancelled")
+                {
+                    transaction.Rollback();
+                    throw new InvalidOperationException("Chỉ cho phép chuyển Pending -> Completed hoặc Cancelled.");
+                }
+
+                // update có điều kiện theo oldStatus để chống 2 client bấm cùng lúc
+                var rows = await _db.ExecuteAsync(
+                    "UPDATE orders SET status = @status WHERE order_id = @id AND status = @oldStatus",
+                    new { id, status, oldStatus },
+                    transaction
+                );
+
+                if (rows == 0)
+                {
+                    transaction.Rollback();
+                    throw new InvalidOperationException("Trạng thái đã bị thay đổi bởi request khác, vui lòng thử lại.");
+                }
+
+                transaction.Commit();
+                return rows;
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+        }
 
         public async Task<IEnumerable<OrderDisplayDTO>> GetOrdersByTableAsync(int tableId)
         {
