@@ -1,331 +1,360 @@
-﻿using Dapper;
+﻿using System;
+using System.Collections.Generic;
 using System.Data;
-using WebApplication1.DTOs.order;
-using WebApplication1.services.interfaces;
+using System.Linq;
+using System.Threading.Tasks;
+using Dapper;
 using Microsoft.AspNetCore.SignalR;
+using WebApplication1.DTOs.order;
 using WebApplication1.Hubs;
 
 namespace WebApplication1.services
 {
-    public class OrderService : IOrderService
+    public class OrderService
     {
         private readonly IDbConnection _db;
         private readonly IHubContext<OrderHub> _hubContext;
-        public OrderService(IDbConnection db, IHubContext<OrderHub> hubContext) 
+
+        public OrderService(IDbConnection db, IHubContext<OrderHub> hubContext)
         {
             _db = db;
             _hubContext = hubContext;
         }
 
+        // =========================
+        // GET ALL
+        // =========================
         public async Task<IEnumerable<OrderDisplayDTO>> GetAllAsync()
         {
-            string sql = @" SELECT o.order_id AS Id, o.created_at AS OrderDate, o.total_amount,
-                                   o.status, o.table_id, o.shipping_address, o.shipping_fee, o.distance_km, 
-                                   u1.full_name AS CreatorFullName, u2.full_name AS ShipperName
-                                   FROM orders o 
-                            LEFT JOIN users u1 ON o.user_id = u1.user_id
-                            LEFT JOIN users u2 ON o.shipper_id = u2.user_id
-                            ORDER BY o.created_at DESC";
+            const string sql = @"
+SELECT 
+    o.order_id AS Id,
+    o.created_at AS OrderDate,
+    o.total_amount AS TotalAmount,
+    o.status AS Status,
+    o.table_id AS TableId,
+    o.user_id AS UserId,
+    o.customer_id AS CustomerId,
+    o.note AS Note,
+    u.full_name AS CreatorFullName
+FROM orders o
+LEFT JOIN users u ON o.user_id = u.user_id
+ORDER BY o.created_at DESC;";
+
             return await _db.QueryAsync<OrderDisplayDTO>(sql);
         }
 
+        // =========================
+        // GET BY ID (kèm details)
+        // =========================
         public async Task<OrderDisplayDTO?> GetByIdAsync(int id)
         {
-            // Lấy thông tin đơn hàng
-            string orderSql = @" SELECT o.order_id AS Id, o.created_at AS OrderDate, o.total_amount,
-                                        o.status, o.table_id, o.shipping_address, o.shipping_fee, o.distance_km,
-                                        u.full_name AS CustomerFullName, u2.full_name AS ShipperName
-                                        FROM orders o
-                                 LEFT JOIN users u ON o.user_id = u.user_id
-                                 LEFT JOIN users u2 ON o.shipper_id = u2.user_id
-                                 WHERE o.order_id = @id";
-            var order = await _db.QueryFirstOrDefaultAsync<OrderDisplayDTO>(orderSql, new { id });
+            const string orderSql = @"
+SELECT 
+    o.order_id AS Id,
+    o.created_at AS OrderDate,
+    o.total_amount AS TotalAmount,
+    o.status AS Status,
+    o.table_id AS TableId,
+    o.user_id AS UserId,
+    o.customer_id AS CustomerId,
+    o.note AS Note,
+    u.full_name AS CreatorFullName
+FROM orders o
+LEFT JOIN users u ON o.user_id = u.user_id
+WHERE o.order_id = @Id;";
 
-            if (order != null)
-            {
-                // Lấy danh sách các món đã đặt kèm tên món
-                string detailSql = @"SELECT od.*, p.name AS ProductName 
-                             FROM order_details od
-                             JOIN products p ON od.product_id = p.product_id
-                             WHERE od.order_id = @id";
-                var details = await _db.QueryAsync<OrderDetailDTO>(detailSql, new { id });
+            var order = await _db.QueryFirstOrDefaultAsync<OrderDisplayDTO>(orderSql, new { Id = id });
+            if (order == null) return null;
 
-                order.Details = details.ToList();
-            }
+            const string detailSql = @"
+SELECT
+    od.order_detail_id AS Id,
+    od.order_id AS OrderId,
+    od.product_id AS ProductId,
+    p.name AS ProductName,
+    od.quantity AS Quantity,
+    od.unit_price AS UnitPrice,
+    od.subtotal AS Subtotal
+FROM order_details od
+LEFT JOIN products p ON od.product_id = p.product_id
+WHERE od.order_id = @Id
+ORDER BY od.order_detail_id ASC;";
+
+            var details = await _db.QueryAsync<OrderDetailDTO>(detailSql, new { Id = id });
+            order.Details = details.ToList();
+
             return order;
         }
 
+        // =========================
+        // ADD (DINE-IN ONLY) - KHÔNG SHIP
+        // Server tự tính total từ DB price
+        // =========================
         public async Task<int> AddAsync(OrderCreateDTO dto)
         {
-            // Đảm bảo kết nối được mở trước khi bắt đầu Transaction
             if (_db.State != ConnectionState.Open) _db.Open();
 
             if (dto.Details == null || dto.Details.Count == 0)
                 throw new ArgumentException("Order phải có ít nhất 1 sản phẩm.");
 
             if (dto.Details.Any(d => d.Quantity <= 0))
-                throw new ArgumentException("Quantity phải lớn hơn 0.");
+                throw new ArgumentException("Quantity phải >= 1.");
 
-            bool isDelivery = !string.IsNullOrWhiteSpace(dto.ShippingAddress);
-
-            if (isDelivery)
+            using var transaction = _db.BeginTransaction();
+            try
             {
-                if (dto.ShippingFee is < 0) throw new ArgumentException("ShippingFee không hợp lệ.");
-                if (dto.DistanceKm is < 0) throw new ArgumentException("DistanceKm không hợp lệ.");
-            }
+                // 1) Insert orders (total_amount tạm 0)
+                const string insertOrderSql = @"
+INSERT INTO orders (created_at, total_amount, user_id, table_id, status, customer_id, note)
+VALUES (@OrderDate, 0, @UserId, @TableId, @Status, @CustomerId, @Note);
+SELECT LAST_INSERT_ID();";
 
-            using (var transaction = _db.BeginTransaction())
-            {
+                var orderParams = new
+                {
+                    dto.OrderDate,
+                    dto.UserId,
+                    dto.TableId,
+                    dto.Status,
+                    dto.CustomerId,
+                    dto.Note
+                };
+
+                int orderId = await _db.ExecuteScalarAsync<int>(insertOrderSql, orderParams, transaction);
+
+                // 2) Insert order_details + tính total
+                const string detailSql = @"
+INSERT INTO order_details (order_id, product_id, quantity, unit_price, subtotal)
+VALUES (@OrderId, @ProductId, @Quantity, @UnitPrice, @Subtotal);";
+
+                decimal total = 0m;
+
+                foreach (var item in dto.Details)
+                {
+                    // lấy price thật từ DB
+                    var price = await _db.ExecuteScalarAsync<decimal>(
+                        "SELECT price FROM products WHERE product_id = @id",
+                        new { id = item.ProductId },
+                        transaction);
+
+                    if (price <= 0)
+                        throw new Exception("Sản phẩm không hợp lệ.");
+
+                    var subtotal = price * item.Quantity;
+                    total += subtotal;
+
+                    await _db.ExecuteAsync(detailSql, new
+                    {
+                        OrderId = orderId,
+                        ProductId = item.ProductId,
+                        Quantity = item.Quantity,
+                        UnitPrice = price,
+                        Subtotal = subtotal
+                    }, transaction);
+                }
+
+                // 3) Update total_amount chuẩn
+                await _db.ExecuteAsync(
+                    "UPDATE orders SET total_amount = @total WHERE order_id = @id",
+                    new { total, id = orderId },
+                    transaction);
+
+                // 4) Cập nhật trạng thái bàn (chống 2 người đặt cùng bàn)
+                if (dto.TableId.HasValue && dto.TableId.Value > 0)
+                {
+                    const string updateTableSql = @"
+UPDATE tables
+SET status = 'Occupied'
+WHERE table_id = @TableId AND status = 'Available';";
+
+                    var rows = await _db.ExecuteAsync(updateTableSql, new { TableId = dto.TableId.Value }, transaction);
+                    if (rows == 0)
+                        throw new Exception("Bàn này đã có người đặt.");
+                }
+
+                transaction.Commit();
+
+                // 5) SignalR: chỉ báo có order mới (không ship)
                 try
                 {
-                    decimal pricePerKm = 5000;
-                    dto.ShippingFee = (decimal)(dto.DistanceKm ?? 0) * pricePerKm;
-                    // 1. Lưu thông tin đơn hàng chính vào bảng orders
-                    string sql = @"INSERT INTO orders (
-                                    created_at, total_amount, user_id, table_id, 
-                                    status, customer_id, note, 
-                                    shipping_address, lat, lng, distance_km, shipping_fee
-                                 ) 
-                                 VALUES (
-                                    @OrderDate, @TotalAmount, @UserId, @TableId, 
-                                    @Status, @CustomerId, @Note, 
-                                    @ShippingAddress, @Lat, @Lng, @DistanceKm, @ShippingFee
-                                 );
-                                 SELECT LAST_INSERT_ID();";
-
-                    var orderId = await _db.ExecuteScalarAsync<int>(sql, dto, transaction);
-
-                    // 2. Lưu danh sách chi tiết món ăn vào bảng order_details
-                    string detailSql = @"INSERT INTO order_details (order_id, product_id, quantity, unit_price, subtotal) 
-                                VALUES (@OrderId, @ProductId, @Quantity, @UnitPrice, @Subtotal)";
-
-                    foreach (var item in dto.Details)
-                    {
-                        // Lấy giá thật từ DB
-                        var price = await _db.ExecuteScalarAsync<decimal>(
-                            "SELECT price FROM products WHERE product_id = @id",
-                            new { id = item.ProductId },
-                            transaction);
-
-                        if (price <= 0)
-                            throw new Exception("Sản phẩm không hợp lệ.");
-
-                        var subtotal = price * item.Quantity;
-
-                        await _db.ExecuteAsync(detailSql, new
-                        {
-                            OrderId = orderId,
-                            ProductId = item.ProductId,
-                            Quantity = item.Quantity,
-                            UnitPrice = price,
-                            Subtotal = subtotal
-                        }, transaction);
-                    }
-
-                    // 3.TỰ ĐỘNG CẬP NHẬT TRẠNG THÁI BÀN
-                    // Nếu đơn hàng có gắn với một bàn cụ thể (TableId không null)
-                    if (dto.TableId.HasValue && dto.TableId > 0)
-                    {
-                        // Cập nhật trạng thái bàn thành 'Occupied' (Có người) trong bảng tables
-                        string updateTableSql = "UPDATE tables SET status = 'Occupied' WHERE table_id = @TableId AND status='Available'";
-                        var rowsAffected = await _db.ExecuteAsync(updateTableSql, new { TableId = dto.TableId }, transaction);
-                        if (rowsAffected == 0)
-                        {
-                            transaction.Rollback();
-                            throw new Exception("Bàn này đã có người đặt.");
-                        }
-                    }
-
-                    // 4. Xác nhận hoàn tất mọi thay đổi nếu không có lỗi
-                    transaction.Commit();
-                    // PHẦN QUAN TRỌNG: Phát tín hiệu cho toàn hệ thống
                     await _hubContext.Clients.All.SendAsync("NewOrderAlert", new
                     {
                         id = orderId,
-                        address = dto.ShippingAddress,
-                        fee = dto.ShippingFee,
-                        lat = dto.Lat,
-                        lng = dto.Lng
+                        tableId = dto.TableId,
+                        total = total
                     });
-                    return orderId;
                 }
-                catch (Exception)
-                {
-                    // Nếu có bất kỳ lỗi nào xảy ra, toàn bộ (Order, Details, Table Status) sẽ được khôi phục lại ban đầu
-                    transaction.Rollback();
-                    throw;
-                }
+                catch { /* không throw */ }
+
+                return orderId;
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
             }
         }
 
-        // Thay đổi tham số truyền vào thành OrderCreateDTO để có danh sách Details mới
+        // =========================
+        // UPDATE - KHÔNG SHIP
+        // - Không cho sửa nếu đã Completed/Cancelled
+        // - Tính lại total từ DB price
+        // - Nếu chuyển Completed/Cancelled thì giải phóng bàn (lấy table_id từ DB)
+        // =========================
         public async Task<int> UpdateAsync(OrderUpdateDTO dto)
         {
             if (_db.State != ConnectionState.Open) _db.Open();
-            using (var transaction = _db.BeginTransaction())
+
+            if (dto.Details == null || dto.Details.Count == 0)
+                throw new ArgumentException("Order phải có ít nhất 1 sản phẩm.");
+
+            if (dto.Details.Any(d => d.Quantity <= 0))
+                throw new ArgumentException("Quantity phải >= 1.");
+
+            using var transaction = _db.BeginTransaction();
+            try
             {
-                try
+                var meta = await _db.QueryFirstOrDefaultAsync<dynamic>(
+                    "SELECT status, table_id, customer_id FROM orders WHERE order_id = @id",
+                    new { id = dto.OrderId },
+                    transaction);
+
+                if (meta == null)
+                    throw new Exception("Không tìm thấy đơn hàng.");
+
+                string oldStatus = (string)meta.status;
+                int? tableIdInDb = (int?)meta.table_id;
+                int? customerIdInDb = (int?)meta.customer_id;
+
+                // chặn sửa khi kết thúc
+                if (oldStatus == "Completed" || oldStatus == "Cancelled")
+                    throw new InvalidOperationException("Đơn hàng đã kết thúc, không thể cập nhật.");
+
+                bool justCompleted = oldStatus != "Completed" && dto.Status == "Completed";
+
+                // 1) Update thông tin chung (không ship)
+                const string updateOrderSql = @"
+UPDATE orders SET
+    status = @Status,
+    note = @Note,
+    table_id = @TableId,
+    customer_id = @CustomerId
+WHERE order_id = @OrderId;";
+
+                await _db.ExecuteAsync(updateOrderSql, new
                 {
-                    var oldStatus = await _db.ExecuteScalarAsync<string>(
-                         "SELECT status FROM orders WHERE order_id = @OrderId",
-                         new { dto.OrderId },
-                         transaction
-                         );
+                    dto.Status,
+                    dto.Note,
+                    dto.TableId,
+                    CustomerId = dto.CustomerId ?? customerIdInDb,
+                    dto.OrderId
+                }, transaction);
 
-                    bool justCompleted = oldStatus != "Completed" && dto.Status == "Completed";
+                // 2) Xóa details cũ
+                await _db.ExecuteAsync(
+                    "DELETE FROM order_details WHERE order_id = @OrderId",
+                    new { dto.OrderId },
+                    transaction);
 
-                    // 0) Chặn update nếu trạng thái không đổi
-                    if (string.Equals(oldStatus, dto.Status, StringComparison.OrdinalIgnoreCase))
+                // 3) Insert details mới + tính total
+                const string insertDetailSql = @"
+INSERT INTO order_details (order_id, product_id, quantity, unit_price, subtotal)
+VALUES (@OrderId, @ProductId, @Quantity, @UnitPrice, @Subtotal);";
+
+                decimal total = 0m;
+
+                foreach (var item in dto.Details)
+                {
+                    var price = await _db.ExecuteScalarAsync<decimal>(
+                        "SELECT price FROM products WHERE product_id = @id",
+                        new { id = item.ProductId },
+                        transaction);
+
+                    if (price <= 0)
+                        throw new Exception("Sản phẩm không hợp lệ.");
+
+                    var subtotal = item.Quantity * price;
+                    total += subtotal;
+
+                    await _db.ExecuteAsync(insertDetailSql, new
                     {
-                        transaction.Rollback();
-                        throw new InvalidOperationException("Đơn hàng đã ở trạng thái này rồi.");
-                    }
+                        OrderId = dto.OrderId,
+                        ProductId = item.ProductId,
+                        Quantity = item.Quantity,
+                        UnitPrice = price,
+                        Subtotal = subtotal
+                    }, transaction);
+                }
 
-                    // 1) Chặn thay đổi trạng thái từ trạng thái kết thúc
-                    if (oldStatus == "Completed" || oldStatus == "Cancelled")
+                // 4) Update total_amount
+                await _db.ExecuteAsync(
+                    "UPDATE orders SET total_amount = @total WHERE order_id = @id",
+                    new { total, id = dto.OrderId },
+                    transaction);
+
+                // 5) Tích điểm chỉ khi completed lần đầu (nếu có customer)
+                if (justCompleted)
+                {
+                    int earnedPoints = (int)(total / 10000m);
+                    if (earnedPoints > 0)
                     {
-                        transaction.Rollback();
-                        throw new InvalidOperationException("Đơn hàng đã kết thúc, không thể đổi trạng thái nữa.");
-                    }
-
-                    // 2) Chỉ cho phép Pending -> Completed/Cancelled (vì DB của bạn chỉ có 3 trạng thái)
-                    if (oldStatus == "Pending" && dto.Status != "Completed" && dto.Status != "Cancelled")
-                    {
-                        transaction.Rollback();
-                        throw new InvalidOperationException("Chỉ cho phép chuyển Pending -> Completed hoặc Cancelled.");
-                    }
-
-                    // 1. Cập nhật thông tin chung của đơn hàng
-                    string sql = @"UPDATE orders SET 
-                        status = @Status, 
-                        note = @Note, 
-                        shipping_address = @ShippingAddress, 
-                        lat = @Lat, 
-                        lng = @Lng, 
-                        distance_km = @DistanceKm, 
-                        shipping_fee = @ShippingFee,
-                        shipper_id = @ShipperId
-                    WHERE order_id = @OrderId";
-
-                    await _db.ExecuteAsync(sql, dto, transaction);
-
-                    // 2. Xóa toàn bộ chi tiết cũ của đơn hàng này
-                    await _db.ExecuteAsync("DELETE FROM order_details WHERE order_id = @OrderId", new { OrderId = dto.OrderId }, transaction);
-
-                    // 3. Chèn lại danh sách chi tiết món ăn mới
-                    string insertDetailSql = @"INSERT INTO order_details (order_id, product_id, quantity, unit_price, subtotal) 
-                                       VALUES (@OrderId, @ProductId, @Quantity, @UnitPrice, @Subtotal)";
-
-                    foreach (var item in dto.Details)
-                    {
-                        await _db.ExecuteAsync(insertDetailSql, new
+                        int? customerId = dto.CustomerId ?? customerIdInDb;
+                        if (customerId.HasValue)
                         {
-                            OrderId = dto.OrderId,
-                            ProductId = item.ProductId,
-                            Quantity = item.Quantity,
-                            UnitPrice = item.UnitPrice,
-                            Subtotal = item.Quantity * item.UnitPrice
-                        }, transaction);
-                    }
-                    //4. LOGIC TÍCH ĐIỂM TỰ ĐỘNG
-                    if (justCompleted)
-                    {
-                        // Tính số điểm tích lũy (1% tổng tiền hoặc 10k = 1 điểm)
-                        int earnedPoints = (int)((dto.TotalAmount ?? 0) / 10000);
-
-                        if (earnedPoints > 0)
-                        {
-                            // Cộng điểm vào bảng customers
-                            string updatePointsSql = @"UPDATE customers 
-                                               SET loyalty_points = loyalty_points + @Points 
-                                               WHERE customer_id = @CustomerId";
-
-                            await _db.ExecuteAsync(updatePointsSql, new
-                            {
-                                Points = earnedPoints,
-                                CustomerId = dto.CustomerId
-                            }, transaction);
+                            await _db.ExecuteAsync(
+                                @"UPDATE customers
+                                  SET loyalty_points = loyalty_points + @Points
+                                  WHERE customer_id = @CustomerId",
+                                new { Points = earnedPoints, CustomerId = customerId.Value },
+                                transaction);
                         }
                     }
-
-                    //5. LOGIC TỰ ĐỘNG GIẢI PHÓNG BÀN
-                    // Nếu trạng thái chuyển thành 'Completed' (Hoàn thành) hoặc 'Cancelled' (Hủy)
-                    if (dto.Status == "Completed" || dto.Status == "Cancelled")
-                    {
-                        if (dto.TableId.HasValue)
-                        {
-                            // Chuyển bàn về trạng thái 'Available' (Trống)
-                            await _db.ExecuteAsync("UPDATE tables SET status = 'Available' WHERE table_id = @TableId",
-                                                   new { TableId = dto.TableId }, transaction);
-                        }
-                    }
-
-                    transaction.Commit();
-                    return 1;
                 }
-                catch (Exception)
+
+                // 6) Nếu completed/cancelled => trả bàn (lấy tableId từ DB)
+                if (dto.Status == "Completed" || dto.Status == "Cancelled")
                 {
-                    transaction.Rollback();
-                    throw;
+                    if (tableIdInDb.HasValue)
+                    {
+                        await _db.ExecuteAsync(
+                            "UPDATE tables SET status = 'Available' WHERE table_id = @TableId",
+                            new { TableId = tableIdInDb.Value },
+                            transaction);
+                    }
                 }
+
+                transaction.Commit();
+                return 1;
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
             }
         }
 
-        public async Task<int> DeleteAsync(int id) =>
-            await _db.ExecuteAsync("DELETE FROM orders WHERE order_id = @id", new { id });
-
+        // =========================
+        // UPDATE STATUS (tuỳ bạn dùng)
+        // =========================
         public async Task<int> UpdateStatusAsync(int id, string status)
+        {
+            const string sql = "UPDATE orders SET status = @status WHERE order_id = @id";
+            return await _db.ExecuteAsync(sql, new { id, status });
+        }
+
+        // =========================
+        // DELETE
+        // (DB nên có ON DELETE CASCADE ở order_details, nhưng vẫn có thể xóa an toàn)
+        // =========================
+        public async Task<int> DeleteAsync(int id)
         {
             if (_db.State != ConnectionState.Open) _db.Open();
 
             using var transaction = _db.BeginTransaction();
             try
             {
-                var oldStatus = await _db.ExecuteScalarAsync<string>(
-                    "SELECT status FROM orders WHERE order_id = @id",
-                    new { id },
-                    transaction
-                );
-
-                if (oldStatus == null)
-                {
-                    transaction.Rollback();
-                    throw new InvalidOperationException("Không tìm thấy đơn hàng.");
-                }
-
-                // chặn update trùng
-                if (string.Equals(oldStatus, status, StringComparison.OrdinalIgnoreCase))
-                {
-                    transaction.Rollback();
-                    throw new InvalidOperationException("Đơn hàng đã ở trạng thái này rồi.");
-                }
-
-                // chặn đổi từ trạng thái kết thúc
-                if (oldStatus == "Completed" || oldStatus == "Cancelled")
-                {
-                    transaction.Rollback();
-                    throw new InvalidOperationException("Đơn hàng đã kết thúc, không thể đổi trạng thái nữa.");
-                }
-
-                // chỉ cho Pending -> Completed/Cancelled
-                if (oldStatus == "Pending" && status != "Completed" && status != "Cancelled")
-                {
-                    transaction.Rollback();
-                    throw new InvalidOperationException("Chỉ cho phép chuyển Pending -> Completed hoặc Cancelled.");
-                }
-
-                // update có điều kiện theo oldStatus để chống 2 client bấm cùng lúc
-                var rows = await _db.ExecuteAsync(
-                    "UPDATE orders SET status = @status WHERE order_id = @id AND status = @oldStatus",
-                    new { id, status, oldStatus },
-                    transaction
-                );
-
-                if (rows == 0)
-                {
-                    transaction.Rollback();
-                    throw new InvalidOperationException("Trạng thái đã bị thay đổi bởi request khác, vui lòng thử lại.");
-                }
+                await _db.ExecuteAsync("DELETE FROM order_details WHERE order_id = @id", new { id }, transaction);
+                var rows = await _db.ExecuteAsync("DELETE FROM orders WHERE order_id = @id", new { id }, transaction);
 
                 transaction.Commit();
                 return rows;
@@ -337,28 +366,28 @@ namespace WebApplication1.services
             }
         }
 
-        public async Task<IEnumerable<OrderDisplayDTO>> GetOrdersByTableAsync(int tableId)
+        // =========================
+        // SEARCH (tìm theo status)
+        // =========================
+        public async Task<IEnumerable<OrderDisplayDTO>> SearchAsync(string key)
         {
-            string sql = @"SELECT o.order_id AS Id, o.created_at AS OrderDate, o.total_amount, o.status, o.table_id 
-                           FROM orders o WHERE o.table_id = @tableId";
-            return await _db.QueryAsync<OrderDisplayDTO>(sql, new { tableId });
-        }
+            const string sql = @"
+SELECT 
+    o.order_id AS Id,
+    o.created_at AS OrderDate,
+    o.total_amount AS TotalAmount,
+    o.status AS Status,
+    o.table_id AS TableId,
+    o.user_id AS UserId,
+    o.customer_id AS CustomerId,
+    o.note AS Note,
+    u.full_name AS CreatorFullName
+FROM orders o
+LEFT JOIN users u ON o.user_id = u.user_id
+WHERE o.status LIKE @key
+ORDER BY o.created_at DESC;";
 
-        public async Task<IEnumerable<OrderDisplayDTO>> SearchAsync(string keyword)
-        {
-            string sql = "SELECT * FROM orders WHERE status LIKE @key";
-            return await _db.QueryAsync<OrderDisplayDTO>(sql, new { key = $"%{keyword}%" });
+            return await _db.QueryAsync<OrderDisplayDTO>(sql, new { key = "%" + key + "%" });
         }
-        public Task<int> AddAsync(OrderDisplayDTO entity)
-        {
-            // Hàm này bắt buộc phải có theo Interface nhưng chúng ta không dùng đến
-            throw new NotImplementedException("Dùng AddAsync(OrderCreateDTO) để tạo đơn hàng.");
-        }
-        public Task<int> UpdateAsync(OrderDisplayDTO entity)
-        {
-            // Hàm này bắt buộc phải có theo Interface nhưng chúng ta không dùng đến
-            throw new NotImplementedException("Dùng UpdateAsync(OrderCreateDTO) để tạo đơn hàng.");
-        }
-
     }
 }
