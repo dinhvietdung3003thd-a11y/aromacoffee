@@ -1,16 +1,17 @@
-﻿using System;
+﻿using Dapper;
+using Microsoft.AspNetCore.SignalR;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
-using Dapper;
-using Microsoft.AspNetCore.SignalR;
 using WebApplication1.DTOs.order;
 using WebApplication1.Hubs;
+using WebApplication1.services.interfaces;
 
 namespace WebApplication1.services
 {
-    public class OrderService
+    public class OrderService : IOrderService
     {
         private readonly IDbConnection _db;
         private readonly IHubContext<OrderHub> _hubContext;
@@ -26,20 +27,18 @@ namespace WebApplication1.services
         // =========================
         public async Task<IEnumerable<OrderDisplayDTO>> GetAllAsync()
         {
-            const string sql = @"
-SELECT 
-    o.order_id AS Id,
-    o.created_at AS OrderDate,
-    o.total_amount AS TotalAmount,
-    o.status AS Status,
-    o.table_id AS TableId,
-    o.user_id AS UserId,
-    o.customer_id AS CustomerId,
-    o.note AS Note,
-    u.full_name AS CreatorFullName
-FROM orders o
-LEFT JOIN users u ON o.user_id = u.user_id
-ORDER BY o.created_at DESC;";
+            const string sql = @" SELECT o.order_id AS Id,
+                                         o.created_at AS OrderDate,
+                                         o.total_amount AS TotalAmount,
+                                         o.status AS Status,
+                                         o.table_id AS TableId,
+                                         o.user_id AS UserId,
+                                         o.customer_id AS CustomerId,
+                                         o.note AS Note,
+                                         u.full_name AS CreatorFullName
+                                   FROM orders o
+                                   LEFT JOIN users u ON o.user_id = u.user_id
+                                   ORDER BY o.created_at DESC;";
 
             return await _db.QueryAsync<OrderDisplayDTO>(sql);
         }
@@ -49,37 +48,34 @@ ORDER BY o.created_at DESC;";
         // =========================
         public async Task<OrderDisplayDTO?> GetByIdAsync(int id)
         {
-            const string orderSql = @"
-SELECT 
-    o.order_id AS Id,
-    o.created_at AS OrderDate,
-    o.total_amount AS TotalAmount,
-    o.status AS Status,
-    o.table_id AS TableId,
-    o.user_id AS UserId,
-    o.customer_id AS CustomerId,
-    o.note AS Note,
-    u.full_name AS CreatorFullName
-FROM orders o
-LEFT JOIN users u ON o.user_id = u.user_id
-WHERE o.order_id = @Id;";
+            const string orderSql = @" SELECT o.order_id AS Id,
+                                              o.created_at AS OrderDate,
+                                              o.total_amount AS TotalAmount,
+                                              o.status AS Status,
+                                              o.table_id AS TableId,
+                                              o.user_id AS UserId,
+                                              o.customer_id AS CustomerId,
+                                              o.note AS Note,
+                                              u.full_name AS CreatorFullName
+                                       FROM orders o
+                                       LEFT JOIN users u ON o.user_id = u.user_id
+                                       WHERE o.order_id = @Id;";
+
 
             var order = await _db.QueryFirstOrDefaultAsync<OrderDisplayDTO>(orderSql, new { Id = id });
             if (order == null) return null;
 
-            const string detailSql = @"
-SELECT
-    od.order_detail_id AS Id,
-    od.order_id AS OrderId,
-    od.product_id AS ProductId,
-    p.name AS ProductName,
-    od.quantity AS Quantity,
-    od.unit_price AS UnitPrice,
-    od.subtotal AS Subtotal
-FROM order_details od
-LEFT JOIN products p ON od.product_id = p.product_id
-WHERE od.order_id = @Id
-ORDER BY od.order_detail_id ASC;";
+            const string detailSql = @" SELECT od.order_detail_id AS Id,
+                                               od.order_id AS OrderId,
+                                               od.product_id AS ProductId,
+                                               p.name AS ProductName,
+                                               od.quantity AS Quantity,
+                                               od.unit_price AS UnitPrice,
+                                               od.subtotal AS Subtotal
+                                       FROM order_details od
+                                       LEFT JOIN products p ON od.product_id = p.product_id
+                                       WHERE od.order_id = @Id
+                                       ORDER BY od.order_detail_id ASC;";
 
             var details = await _db.QueryAsync<OrderDetailDTO>(detailSql, new { Id = id });
             order.Details = details.ToList();
@@ -105,10 +101,9 @@ ORDER BY od.order_detail_id ASC;";
             try
             {
                 // 1) Insert orders (total_amount tạm 0)
-                const string insertOrderSql = @"
-INSERT INTO orders (created_at, total_amount, user_id, table_id, status, customer_id, note)
-VALUES (@OrderDate, 0, @UserId, @TableId, @Status, @CustomerId, @Note);
-SELECT LAST_INSERT_ID();";
+                const string insertOrderSql = @" INSERT INTO orders (created_at, total_amount, user_id, table_id, status, customer_id, note)
+                                                 VALUES (@OrderDate, 0, @UserId, @TableId, @Status, @CustomerId, @Note);
+                                                 SELECT LAST_INSERT_ID();";
 
                 var orderParams = new
                 {
@@ -123,9 +118,8 @@ SELECT LAST_INSERT_ID();";
                 int orderId = await _db.ExecuteScalarAsync<int>(insertOrderSql, orderParams, transaction);
 
                 // 2) Insert order_details + tính total
-                const string detailSql = @"
-INSERT INTO order_details (order_id, product_id, quantity, unit_price, subtotal)
-VALUES (@OrderId, @ProductId, @Quantity, @UnitPrice, @Subtotal);";
+                const string detailSql = @" INSERT INTO order_details (order_id, product_id, quantity, unit_price, subtotal)
+                                            VALUES (@OrderId, @ProductId, @Quantity, @UnitPrice, @Subtotal);";
 
                 decimal total = 0m;
 
@@ -162,10 +156,9 @@ VALUES (@OrderId, @ProductId, @Quantity, @UnitPrice, @Subtotal);";
                 // 4) Cập nhật trạng thái bàn (chống 2 người đặt cùng bàn)
                 if (dto.TableId.HasValue && dto.TableId.Value > 0)
                 {
-                    const string updateTableSql = @"
-UPDATE tables
-SET status = 'Occupied'
-WHERE table_id = @TableId AND status = 'Available';";
+                    const string updateTableSql = @" UPDATE tables
+                                                        SET status = 'Occupied'
+                                                        WHERE table_id = @TableId AND status = 'Available';";
 
                     var rows = await _db.ExecuteAsync(updateTableSql, new { TableId = dto.TableId.Value }, transaction);
                     if (rows == 0)
@@ -233,13 +226,12 @@ WHERE table_id = @TableId AND status = 'Available';";
                 bool justCompleted = oldStatus != "Completed" && dto.Status == "Completed";
 
                 // 1) Update thông tin chung (không ship)
-                const string updateOrderSql = @"
-UPDATE orders SET
-    status = @Status,
-    note = @Note,
-    table_id = @TableId,
-    customer_id = @CustomerId
-WHERE order_id = @OrderId;";
+                const string updateOrderSql = @" UPDATE orders SET
+                                                        status = @Status,
+                                                        note = @Note,
+                                                        table_id = @TableId,
+                                                        customer_id = @CustomerId
+                                                    WHERE order_id = @OrderId;";
 
                 await _db.ExecuteAsync(updateOrderSql, new
                 {
@@ -257,9 +249,8 @@ WHERE order_id = @OrderId;";
                     transaction);
 
                 // 3) Insert details mới + tính total
-                const string insertDetailSql = @"
-INSERT INTO order_details (order_id, product_id, quantity, unit_price, subtotal)
-VALUES (@OrderId, @ProductId, @Quantity, @UnitPrice, @Subtotal);";
+                const string insertDetailSql = @"INSERT INTO order_details (order_id, product_id, quantity, unit_price, subtotal)
+                                                 VALUES (@OrderId, @ProductId, @Quantity, @UnitPrice, @Subtotal);";
 
                 decimal total = 0m;
 
@@ -371,23 +362,40 @@ VALUES (@OrderId, @ProductId, @Quantity, @UnitPrice, @Subtotal);";
         // =========================
         public async Task<IEnumerable<OrderDisplayDTO>> SearchAsync(string key)
         {
-            const string sql = @"
-SELECT 
-    o.order_id AS Id,
-    o.created_at AS OrderDate,
-    o.total_amount AS TotalAmount,
-    o.status AS Status,
-    o.table_id AS TableId,
-    o.user_id AS UserId,
-    o.customer_id AS CustomerId,
-    o.note AS Note,
-    u.full_name AS CreatorFullName
-FROM orders o
-LEFT JOIN users u ON o.user_id = u.user_id
-WHERE o.status LIKE @key
-ORDER BY o.created_at DESC;";
+            const string sql = @"SELECT 
+                                    o.order_id AS Id,
+                                    o.created_at AS OrderDate,
+                                    o.total_amount AS TotalAmount,
+                                    o.status AS Status,
+                                    o.table_id AS TableId,
+                                    o.user_id AS UserId,
+                                    o.customer_id AS CustomerId,
+                                    o.note AS Note,
+                                    u.full_name AS CreatorFullName
+                                FROM orders o
+                                LEFT JOIN users u ON o.user_id = u.user_id
+                                WHERE o.status LIKE @key
+                                ORDER BY o.created_at DESC;";
 
             return await _db.QueryAsync<OrderDisplayDTO>(sql, new { key = "%" + key + "%" });
+        }
+        public Task<int> AddAsync(OrderDisplayDTO entity)
+        {
+            // Hàm này bắt buộc phải có theo Interface nhưng chúng ta không dùng đến
+            throw new NotImplementedException("Dùng AddAsync(OrderCreateDTO) để tạo đơn hàng.");
+        }
+
+        public Task<int> UpdateAsync(OrderDisplayDTO entity)
+        {
+            // Hàm này bắt buộc phải có theo Interface nhưng chúng ta không dùng đến
+            throw new NotImplementedException("Dùng UpdateAsync(OrderCreateDTO) để tạo đơn hàng.");
+        }
+
+        public async Task<IEnumerable<OrderDisplayDTO>> GetOrdersByTableAsync(int tableId)
+        {
+            string sql = @"SELECT o.order_id AS Id, o.created_at AS OrderDate, o.total_amount, o.status, o.table_id 
+                           FROM orders o WHERE o.table_id = @tableId";
+            return await _db.QueryAsync<OrderDisplayDTO>(sql, new { tableId });
         }
     }
 }
