@@ -7,6 +7,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using WebApplication1.DTOs.order;
 using WebApplication1.Hubs;
+using WebApplication1.Models;
 using WebApplication1.services.interfaces;
 
 namespace WebApplication1.services
@@ -87,45 +88,49 @@ namespace WebApplication1.services
         // ADD (DINE-IN ONLY) - KHÔNG SHIP
         // Server tự tính total từ DB price
         // =========================
-        public async Task<int> AddAsync(OrderCreateDTO dto)
+        private async Task<(int OrderId, decimal TotalAmount)> AddInternalAsync(
+    DateTime orderDate,
+    int? tableId,
+    string? status,
+    int? userId,
+    int? customerId,
+    string? note,
+    List<OrderDetailCreateDTO> details)
         {
             if (_db.State != ConnectionState.Open) _db.Open();
 
-            if (dto.Details == null || dto.Details.Count == 0)
+            if (details == null || details.Count == 0)
                 throw new ArgumentException("Order phải có ít nhất 1 sản phẩm.");
 
-            if (dto.Details.Any(d => d.Quantity <= 0))
+            if (details.Any(d => d.Quantity <= 0))
                 throw new ArgumentException("Quantity phải >= 1.");
 
             using var transaction = _db.BeginTransaction();
             try
             {
-                // 1) Insert orders (total_amount tạm 0)
-                const string insertOrderSql = @" INSERT INTO orders (created_at, total_amount, user_id, table_id, status, customer_id, note)
-                                                 VALUES (@OrderDate, 0, @UserId, @TableId, @Status, @CustomerId, @Note);
-                                                 SELECT LAST_INSERT_ID();";
+                const string insertOrderSql = @"INSERT INTO orders
+            (created_at, total_amount, user_id, table_id, status, customer_id, note)
+            VALUES (@OrderDate, 0, @UserId, @TableId, @Status, @CustomerId, @Note);
+            SELECT LAST_INSERT_ID();";
 
-                var orderParams = new
+                int orderId = await _db.ExecuteScalarAsync<int>(insertOrderSql, new
                 {
-                    dto.OrderDate,
-                    dto.UserId,
-                    dto.TableId,
-                    dto.Status,
-                    dto.CustomerId,
-                    dto.Note
-                };
+                    OrderDate = orderDate,
+                    UserId = userId,
+                    TableId = tableId,
+                    Status = status,
+                    CustomerId = customerId,
+                    Note = note
+                }, transaction);
 
-                int orderId = await _db.ExecuteScalarAsync<int>(insertOrderSql, orderParams, transaction);
-
-                // 2) Insert order_details + tính total
-                const string detailSql = @" INSERT INTO order_details (order_id, product_id, quantity, unit_price, subtotal)
-                                            VALUES (@OrderId, @ProductId, @Quantity, @UnitPrice, @Subtotal);";
+                const string detailSql = @"INSERT INTO order_details
+            (order_id, product_id, quantity, unit_price, subtotal)
+            VALUES (@OrderId, @ProductId, @Quantity, @UnitPrice, @Subtotal);";
 
                 decimal total = 0m;
 
-                foreach (var item in dto.Details)
+                foreach (var item in details)
                 {
-                    // lấy price thật từ DB
                     var price = await _db.ExecuteScalarAsync<decimal>(
                         "SELECT price FROM products WHERE product_id = @id",
                         new { id = item.ProductId },
@@ -147,45 +152,81 @@ namespace WebApplication1.services
                     }, transaction);
                 }
 
-                // 3) Update total_amount chuẩn
                 await _db.ExecuteAsync(
-                    "UPDATE orders SET total_amount = @total WHERE order_id = @id",
-                    new { total, id = orderId },
+                    "UPDATE orders SET total_amount = @Total WHERE order_id = @OrderId",
+                    new { Total = total, OrderId = orderId },
                     transaction);
 
-                // 4) Cập nhật trạng thái bàn (chống 2 người đặt cùng bàn)
-                if (dto.TableId.HasValue && dto.TableId.Value > 0)
+                if (tableId.HasValue)
                 {
-                    const string updateTableSql = @" UPDATE tables
-                                                        SET status = 'Occupied'
-                                                        WHERE table_id = @TableId AND status = 'Available';";
-
-                    var rows = await _db.ExecuteAsync(updateTableSql, new { TableId = dto.TableId.Value }, transaction);
-                    if (rows == 0)
-                        throw new Exception("Bàn này đã có người đặt.");
+                    await _db.ExecuteAsync(
+                        "UPDATE tables SET status = 'Occupied' WHERE table_id = @TableId",
+                        new { TableId = tableId.Value },
+                        transaction);
                 }
 
                 transaction.Commit();
-
-                // 5) SignalR: chỉ báo có order mới (không ship)
-                try
-                {
-                    await _hubContext.Clients.All.SendAsync("NewOrderAlert", new
-                    {
-                        id = orderId,
-                        tableId = dto.TableId,
-                        total = total
-                    });
-                }
-                catch { /* không throw */ }
-
-                return orderId;
+                return (orderId, total);
             }
             catch
             {
                 transaction.Rollback();
                 throw;
             }
+        }
+
+        public async Task<int> AddByStaffAsync(StaffCreateOrderDTO dto, int userId)
+        {
+            var result = await AddInternalAsync(
+                dto.OrderDate,
+                dto.TableId,
+                dto.Status,
+                userId,
+                dto.CustomerId,
+                dto.Note,
+                dto.Details
+            );
+
+            await _hubContext.Clients.All.SendAsync("ReceiveNewOrder", new
+            {
+                OrderId = result.OrderId,
+                TableId = dto.TableId,
+                UserId = userId,
+                CustomerId = dto.CustomerId,
+                Status = dto.Status ?? "Pending",
+                TotalAmount = result.TotalAmount,
+                Source = "Staff",
+                Message = "Có đơn hàng mới do nhân viên tạo"
+            });
+
+            return result.OrderId;
+        }
+
+        public async Task<int> AddByCustomerAsync(CustomerCreateOrderDTO dto, int customerId)
+        {
+            var result = await AddInternalAsync(
+                dto.OrderDate,
+                dto.TableId,
+                dto.Status,
+                null,
+                customerId,
+                dto.Note,
+                dto.Details
+            );
+
+            await _hubContext.Clients.All.SendAsync("ReceiveNewOrder", new
+            {
+                OrderId = result.OrderId,
+                TableId = dto.TableId,
+                UserId = (int?)null,
+                CustomerId = customerId,
+                Status = dto.Status ?? "Pending",
+                TotalAmount = result.TotalAmount,
+                Source = "Customer",
+                Message = "Có đơn hàng mới do khách hàng tạo"
+            });
+
+            return result.OrderId;
         }
 
         // =========================

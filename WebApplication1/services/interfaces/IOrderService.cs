@@ -7,7 +7,8 @@ namespace WebApplication1.services.interfaces
     {
         // Ngoài các hàm CRUD cơ bản, Order thường cần thêm hàm cập nhật trạng thái
         // Ví dụ: Chuyển từ "Chờ thanh toán" sang "Đã thanh toán" hoặc "Đã hủy"
-        Task<int> AddAsync(OrderCreateDTO dto);
+        Task<int> AddByStaffAsync(StaffCreateOrderDTO dto, int userId);
+        Task<int> AddByCustomerAsync(CustomerCreateOrderDTO dto, int customerId);
         Task<int> UpdateAsync(OrderUpdateDTO dto);
         Task<int> UpdateStatusAsync(int id, string status);
          
