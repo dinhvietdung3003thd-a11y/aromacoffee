@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using WebApplication1.DTOs.order;
 using WebApplication1.services.interfaces;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace WebApplication1.Controllers
 {
@@ -50,11 +52,16 @@ namespace WebApplication1.Controllers
 
         // 5. Tạo mới đơn hàng
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] OrderCreateDTO input)
+        public async Task<IActionResult> Create([FromBody] StaffCreateOrderDTO input)
         {
-            int newId = await _orderService.AddAsync(input);
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim))
+                return Unauthorized(new { message = "Không lấy được userId từ token" });
 
-            return CreatedAtAction(nameof(GetById), new { id = newId }, input);
+            int userId = int.Parse(userIdClaim);
+
+            int newId = await _orderService.AddByStaffAsync(input, userId);
+            return CreatedAtAction(nameof(GetById), new { id = newId }, new { OrderId = newId });
         }
 
         // 6. Cập nhật thông tin đơn hàng

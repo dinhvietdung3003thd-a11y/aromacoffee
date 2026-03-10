@@ -6,5 +6,6 @@
         public string FullName { get; set; } = string.Empty; 
         public int LoyaltyPoints { get; set; } 
         public string Role { get; } = "Customer"; // Để phân biệt với nhân viên
+        public string? Token { get; set; }
     }
 }

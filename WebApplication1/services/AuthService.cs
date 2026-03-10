@@ -43,9 +43,33 @@ namespace WebApplication1.services
             {
                 Subject = new ClaimsIdentity(new[]
                 {
-            new Claim(ClaimTypes.Name, user.Username),
-            new Claim(ClaimTypes.Role, user.Role ?? "Staff")
-        }),
+                    new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
+                    new Claim(ClaimTypes.Name, user.Username),
+                    new Claim(ClaimTypes.Role, user.Role ?? "Staff")
+                }),
+                Expires = DateTime.UtcNow.AddDays(7),
+                SigningCredentials = new SigningCredentials(
+                    new SymmetricSecurityKey(key),
+                    SecurityAlgorithms.HmacSha256Signature)
+            };
+
+            var token = tokenHandler.CreateToken(tokenDescriptor);
+            return tokenHandler.WriteToken(token);
+        }
+
+        private string GenerateCustomerJwtToken(int customerId, string username)
+        {
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var key = Encoding.UTF8.GetBytes(_configuration["Jwt:Key"] ?? "Chuoi_Key_Bao_Mat_Cua_Aroma_Cafe_2026");
+
+            var tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Subject = new ClaimsIdentity(new[]
+                {
+                    new Claim(ClaimTypes.NameIdentifier, customerId.ToString()),
+                    new Claim(ClaimTypes.Name, username),
+                    new Claim(ClaimTypes.Role, "Customer")
+                }),
                 Expires = DateTime.UtcNow.AddDays(7),
                 SigningCredentials = new SigningCredentials(
                     new SymmetricSecurityKey(key),
@@ -131,14 +155,32 @@ namespace WebApplication1.services
 
         public async Task<CustomerAccountDTO?> CustomerLoginAsync(LoginRequest request)
         {
-            string hashedInput = HashPassword(request.Password); 
+            string hashedInput = HashPassword(request.Password);
 
-            // Truy vấn thông tin từ bảng khách hàng
-            string sql = @"SELECT customer_id, username, full_name, loyalty_points 
-                   FROM customers 
+            string sql = @"SELECT customer_id, username, full_name, loyalty_points
+                   FROM customers
                    WHERE username = @u AND password_hash = @p";
 
-            return await _db.QueryFirstOrDefaultAsync<CustomerAccountDTO>(sql, new { u = request.Username, p = hashedInput });
+            var customer = await _db.QueryFirstOrDefaultAsync(sql, new
+            {
+                u = request.Username,
+                p = hashedInput
+            });
+
+            if (customer == null) return null;
+
+            string token = GenerateCustomerJwtToken(
+                (int)customer.customer_id,
+                (string)customer.username
+            );
+
+            return new CustomerAccountDTO
+            {
+                CustomerId = customer.customer_id,
+                FullName = customer.full_name,
+                LoyaltyPoints = customer.loyalty_points,
+                Token = token
+            };
         }
     }
 }
