@@ -16,7 +16,7 @@ namespace WebApplication1.Controllers
         [HttpPost("transaction")]
         public async Task<IActionResult> CreateTransaction([FromBody] InventoryTransactionDTO dto)
         {
-            var result = await _inventoryService.ProcessTransactionAsync(dto);
+            var result = await _inventoryService.CreateTransactionAsync(dto);
             if (result) return Ok(new { message = "Xử lý giao dịch kho thành công!" });
             return BadRequest(new { message = "Lỗi khi xử lý giao dịch kho!" });
         }

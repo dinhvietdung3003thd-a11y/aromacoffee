@@ -27,7 +27,9 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddScoped<IDbConnection>((sp) => new MySqlConnection(connectionString));
 
 // --- 3. Cấu hình Authentication ---
-var secretKey = builder.Configuration["Jwt:Key"] ?? "Chuoi_Key_Bao_Mat_Cua_Aroma_Cafe_2026";
+var secretKey = builder.Configuration["Jwt:Key"];
+if (string.IsNullOrWhiteSpace(secretKey))
+    throw new Exception("Missing Jwt:Key");
 var key = Encoding.UTF8.GetBytes(secretKey); // Thống nhất dùng UTF8
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

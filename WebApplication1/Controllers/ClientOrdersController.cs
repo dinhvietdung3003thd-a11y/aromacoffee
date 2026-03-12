@@ -31,11 +31,22 @@ namespace WebApplication1.Controllers
             return CreatedAtAction(nameof(GetById), new { id = newId }, new { OrderId = newId });
         }
 
+        [Authorize]
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
+            var customerIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(customerIdClaim))
+                return Unauthorized(new { message = "Không xác định được khách hàng." });
+
+            int customerId = int.Parse(customerIdClaim);
+
             var order = await _orderService.GetByIdAsync(id);
-            if (order == null) return NotFound(new { message = "Không tìm thấy đơn hàng" });
+            if (order == null)
+                return NotFound(new { message = "Không tìm thấy đơn hàng." });
+
+            if (order.CustomerId != customerId)
+                return StatusCode(403, new { message = "Bạn không có quyền xem đơn hàng này." });
 
             return Ok(order);
         }

@@ -14,14 +14,12 @@ namespace WebApplication1.Controllers
         public async Task<IActionResult> GetAll() => Ok(await _service.GetAllDisplayAsync());
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(int id) => Ok(await _service.GetByIdAsync(id));
-
-        [HttpPost]
-        public async Task<IActionResult> Create([FromBody] InventoryTransaction transaction)
+        public async Task<IActionResult> GetById(int id)
         {
-            var result = await _service.AddAsync(transaction);
-            return result > 0 ? Ok(new { message = "Ghi nhật ký thành công" }) : BadRequest();
+            var item = await _service.GetByIdAsync(id);
+            return item == null ? NotFound() : Ok(item);
         }
+
 
         [HttpGet("search")]
         public async Task<IActionResult> Search([FromQuery] string q) => Ok(await _service.SearchAsync(q));
