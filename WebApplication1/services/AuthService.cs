@@ -37,7 +37,8 @@ namespace WebApplication1.services
         private string GenerateJwtToken(Account user)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.UTF8.GetBytes(_configuration["Jwt:Key"] ?? "Chuoi_Key_Bao_Mat_Cua_Aroma_Cafe_2026");
+            var secretKey = _configuration["Jwt:Key"];
+            var key = Encoding.UTF8.GetBytes(secretKey);
 
             var tokenDescriptor = new SecurityTokenDescriptor
             {
@@ -48,7 +49,7 @@ namespace WebApplication1.services
                     new Claim(ClaimTypes.Role, user.Role ?? "Staff")
                 }),
                 Expires = DateTime.UtcNow.AddDays(7),
-                SigningCredentials = new SigningCredentials(
+                SigningCredentials = new SigningCredentials(    
                     new SymmetricSecurityKey(key),
                     SecurityAlgorithms.HmacSha256Signature)
             };
