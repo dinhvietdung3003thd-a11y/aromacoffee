@@ -1,65 +1,62 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using WebApplication1.Models;
 using WebApplication1.DTOs.supplier;
 using WebApplication1.services.interfaces;
-
-[ApiController]
-[Route("api/[controller]")]
-public class SupplierController : ControllerBase
+namespace WebApplication1.Controllers
 {
-    private readonly ISupplierService _supplierService;
-    public SupplierController(ISupplierService supplierService) => _supplierService = supplierService;
-
-    // Trả về danh sách DTO rút gọn cho giao diện
-    [HttpGet]
-    public async Task<IActionResult> GetAll()
+    [ApiController]
+    [Route("api/[controller]")]
+    public class SupplierController : ControllerBase
     {
-        var suppliers = await _supplierService.GetAllDisplayAsync();
-        return Ok(suppliers);
-    }
+        private readonly ISupplierService _supplierService;
 
-    [HttpGet("{id}")]
-    public async Task<IActionResult> GetById(int id) => Ok(await _supplierService.GetByIdAsync(id));
-
-    // Sử dụng SupplierDTO khi tạo mới để ẩn đi SupplierId
-    [HttpPost]
-    public async Task<IActionResult> Create([FromBody] SupplierDTO dto)
-    {
-        var supplier = new Supplier
+        public SupplierController(ISupplierService supplierService)
         {
-            Name = dto.Name,
-            ContactName = dto.ContactName,
-            Phone = dto.Phone,
-            Email = dto.Email,
-            Address = dto.Address
-        };
+            _supplierService = supplierService;
+        }
 
-        var result = await _supplierService.AddAsync(supplier);
-        return result > 0 ? Ok(new { message = "Thêm nhà cung cấp thành công" }) : BadRequest();
-    }
-
-    // Khi cập nhật, thường cần cả ID và thông tin mới
-    [HttpPut("{id}")]
-    public async Task<IActionResult> Update(int id, [FromBody] SupplierDTO dto)
-    {
-        var supplier = new Supplier
+        [HttpGet]
+        public async Task<IActionResult> GetAll()
         {
-            SupplierId = id,
-            Name = dto.Name,
-            ContactName = dto.ContactName,
-            Phone = dto.Phone,
-            Email = dto.Email,
-            Address = dto.Address
-        };
+            var suppliers = await _supplierService.GetAllDisplayAsync();
+            return Ok(suppliers);
+        }
 
-        var result = await _supplierService.UpdateAsync(supplier);
-        return result > 0 ? Ok(new { message = "Cập nhật thành công" }) : BadRequest();
-    }
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(int id)
+        {
+            var supplier = await _supplierService.GetByIdAsync(id);
 
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> Delete(int id)
-    {
-        var result = await _supplierService.DeleteAsync(id);
-        return result > 0 ? Ok(new { message = "Xóa thành công" }) : NotFound();
+            if (supplier == null)
+                return NotFound();
+
+            return Ok(supplier);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Create([FromBody] SupplierDTO dto)
+        {
+            var result = await _supplierService.AddAsync(dto);
+            return result > 0
+                ? Ok(new { message = "Thêm nhà cung cấp thành công" })
+                : BadRequest();
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(int id, [FromBody] SupplierDTO dto)
+        {
+            var result = await _supplierService.UpdateAsync(id, dto);
+            return result > 0
+                ? Ok(new { message = "Cập nhật thành công" })
+                : NotFound();
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var result = await _supplierService.DeleteAsync(id);
+            return result > 0
+                ? Ok(new { message = "Xóa thành công" })
+                : NotFound();
+        }
     }
 }

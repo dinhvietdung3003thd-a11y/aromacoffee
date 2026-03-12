@@ -46,8 +46,8 @@ namespace WebApplication1.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            await _productService.DeleteAsync(id);
-            return Ok(new { message = "Xóa thành công" });
+            var rows = await _productService.DeleteAsync(id);
+            return rows > 0 ? Ok(new { message = "Xóa thành công" }) : NotFound();
         }
 
         [HttpGet("search-elastic")]
@@ -62,6 +62,13 @@ namespace WebApplication1.Controllers
         {
             await _productService.SyncProductsToElasticAsync();
             return Ok(new { message = "Đồng bộ product sang Elasticsearch thành công" });
+        }
+
+        [HttpGet("search")]
+        public async Task<IActionResult> Search([FromQuery] string keyword)
+        {
+            var result = await _productService.SearchAsync(keyword);
+            return Ok(result);
         }
     }
 }

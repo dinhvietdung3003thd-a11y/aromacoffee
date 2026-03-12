@@ -20,7 +20,7 @@ namespace WebApplication1.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            return Ok(await _categoryService.GetAllAsync());
+            return Ok(await _categoryService.GetAllDisplayAsync());
         }
 
         [HttpGet("{id}")]
@@ -37,16 +37,18 @@ namespace WebApplication1.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] CategoryCreateDTO input)
+        public async Task<IActionResult> Create([FromBody] CategoryCreateDTO dto)
         {
-            var categorydto = new CategoryDTO
-            {
-                Description = input.Description,
-                Name = input.Name,
-            };
-
-            await _categoryService.AddAsync(categorydto);
-            return CreatedAtAction(nameof(GetById), new { id = categorydto.CategoryId }, categorydto);
+            int newid = await _categoryService.AddAsync(dto);
+            return CreatedAtAction(nameof(GetById), new { id = newid }, new {CategoryId = newid});
+        }
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(int id, [FromBody] CategoryDTO dto)
+        {
+            var result = await _categoryService.UpdateAsync(id, dto);
+            return result > 0
+                ? Ok(new { message = "Cập nhật thành công" })
+                : NotFound();
         }
 
         [HttpDelete("{id}")]

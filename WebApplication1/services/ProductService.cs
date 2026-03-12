@@ -58,7 +58,7 @@ namespace WebApplication1.services
             await _elasticClient.IndexAsync(product, i => i
                 .Index("aroma_products")
                 .Id(product.ProductId));
-
+            await TryIndexProductAsync(product);
             return id;
         }
 
@@ -100,6 +100,7 @@ namespace WebApplication1.services
                 await _elasticClient.IndexAsync(product, i => i
                     .Index("aroma_products")
                     .Id(product.ProductId));
+                await TryIndexProductAsync(product);
             }
 
             return rows;
@@ -113,8 +114,7 @@ namespace WebApplication1.services
 
             if (rows > 0)
             {
-                await _elasticClient.DeleteAsync<Product>(id, d => d
-                    .Index("aroma_products"));
+                await TryDeleteProductAsync(id);
             }
 
             return rows;
@@ -168,9 +168,32 @@ namespace WebApplication1.services
 
             foreach (var product in products)
             {
+                await TryIndexProductAsync(product);
+            }
+        }
+        private async Task TryIndexProductAsync(Product product)
+        {
+            try
+            {
                 await _elasticClient.IndexAsync(product, i => i
                     .Index("aroma_products")
                     .Id(product.ProductId));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Elastic index error for ProductId {product.ProductId}: {ex.Message}");
+            }
+        }
+        private async Task TryDeleteProductAsync(int productId)
+        {
+            try
+            {
+                await _elasticClient.DeleteAsync<Product>(productId, d => d
+                    .Index("aroma_products"));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Elastic delete error for ProductId {productId}: {ex.Message}");
             }
         }
     }

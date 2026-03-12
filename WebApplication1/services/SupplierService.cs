@@ -11,35 +11,57 @@ namespace WebApplication1.services
         private readonly IDbConnection _db;
         public SupplierService(IDbConnection db) => _db = db;
 
-        public async Task<IEnumerable<Supplier>> GetAllAsync()
-            => await _db.QueryAsync<Supplier>("SELECT * FROM suppliers");
+        public async Task<SupplierDisplayDTO?> GetByIdAsync(int id)
+        {
+            string sql = @"SELECT supplier_id,
+                          name,
+                          phone,
+                          contact_name AS ContactPerson
+                   FROM suppliers
+                   WHERE supplier_id = @id";
 
-        public async Task<Supplier?> GetByIdAsync(int id)
-            => await _db.QueryFirstOrDefaultAsync<Supplier>("SELECT * FROM suppliers WHERE supplier_id = @id", new { id });
+            return await _db.QueryFirstOrDefaultAsync<SupplierDisplayDTO>(sql, new { id });
+        }
 
-        public async Task<int> AddAsync(Supplier entity)
+        public async Task<int> AddAsync(SupplierDTO dto)
         {
             string sql = @"INSERT INTO suppliers (name, contact_name, phone, email, address) 
                        VALUES (@Name, @ContactName, @Phone, @Email, @Address)";
-            return await _db.ExecuteAsync(sql, entity);
+            return await _db.ExecuteAsync(sql, dto);
         }
 
-        public async Task<int> UpdateAsync(Supplier entity)
+        public async Task<int> UpdateAsync(int id, SupplierDTO dto)
         {
             string sql = @"UPDATE suppliers 
                        SET name = @Name, contact_name = @ContactName, 
                            phone = @Phone, email = @Email, address = @Address 
-                       WHERE supplier_id = @SupplierId";
-            return await _db.ExecuteAsync(sql, entity);
+                       WHERE supplier_id = @Id";
+            return await _db.ExecuteAsync(sql, new
+            {
+                Id = id,
+                dto.Name,
+                dto.ContactName,
+                dto.Phone,
+                dto.Email,
+                dto.Address
+            });
         }
 
         public async Task<int> DeleteAsync(int id)
             => await _db.ExecuteAsync("DELETE FROM suppliers WHERE supplier_id = @id", new { id });
 
-        public async Task<IEnumerable<Supplier>> SearchAsync(string keyword)
+        public async Task<IEnumerable<SupplierDisplayDTO>> SearchAsync(string keyword)
         {
-            string sql = "SELECT * FROM suppliers WHERE name LIKE @k OR phone LIKE @k OR contact_name LIKE @k";
-            return await _db.QueryAsync<Supplier>(sql, new { k = $"%{keyword}%" });
+            string sql = @"SELECT supplier_id,
+                          name,
+                          phone,
+                          contact_name AS ContactPerson
+                   FROM suppliers
+                   WHERE name LIKE @k
+                      OR phone LIKE @k
+                      OR contact_name LIKE @k";
+
+            return await _db.QueryAsync<SupplierDisplayDTO>(sql, new { k = $"%{keyword}%" });
         }
         public async Task<IEnumerable<SupplierDisplayDTO>> GetAllDisplayAsync()
         {
