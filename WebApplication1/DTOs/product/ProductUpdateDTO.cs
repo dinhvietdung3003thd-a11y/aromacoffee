@@ -16,5 +16,6 @@ namespace WebApplication1.DTOs.product
 
         [Range(1, int.MaxValue, ErrorMessage = "CategoryId không hợp lệ")]
         public int CategoryId { get; set; }
+        public string? Description { get; set; }
     }
 }

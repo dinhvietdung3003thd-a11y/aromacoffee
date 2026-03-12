@@ -23,44 +23,22 @@ namespace WebApplication1.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create(ProductCreateDTO input) // Dùng DTO mới ở đây
+        public async Task<IActionResult> Create(ProductCreateDTO input)
         {
-            // Chuyển đổi từ DTO sang Model/DTO gốc để gửi xuống Service
-            var productDto = new ProductDTO
-            {
-                Name = input.Name,
-                Price = input.Price,
-                CategoryId = input.CategoryId,
-                ImageUrl = input.ImageUrl,
-                IsAvailable = input.IsAvailable,
-            };
-
-            await _productService.AddAsync(productDto);
-            return CreatedAtAction(nameof(GetById), new { id = productDto.ProductId }, productDto);
+            var id = await _productService.AddAsync(input);
+            return CreatedAtAction(nameof(GetById), new { id }, new { ProductId = id });
         }
 
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, ProductUpdateDTO input)
         {
-            // 1. Kiểm tra an toàn: ID trên URL phải khớp với ID trong gói tin gửi lên
             if (id != input.ProductId)
-            {
                 return BadRequest("Mã sản phẩm không khớp!");
-            }
 
-            // 2. Chuyển đổi sang ProductDTO để gọi Service
-            var productDto = new ProductDTO
-            {
-                ProductId = input.ProductId,
-                Name = input.Name,
-                Price = input.Price,
-                ImageUrl = input.ImageUrl,
-                IsAvailable = input.IsAvailable,
-                CategoryId = input.CategoryId
-            };
+            var rows = await _productService.UpdateAsync(id, input);
 
-            // 3. Gọi Service cập nhật
-            await _productService.UpdateAsync(productDto);
+            if (rows == 0)
+                return NotFound();
 
             return Ok(new { message = "Cập nhật thành công!" });
         }
@@ -68,8 +46,29 @@ namespace WebApplication1.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            await _productService.DeleteAsync(id);
-            return Ok(new { message = "Xóa thành công" });
+            var rows = await _productService.DeleteAsync(id);
+            return rows > 0 ? Ok(new { message = "Xóa thành công" }) : NotFound();
+        }
+
+        [HttpGet("search-elastic")]
+        public async Task<IActionResult> SearchElastic([FromQuery] string keyword)
+        {
+            var result = await _productService.SearchProductsElasticAsync(keyword);
+            return Ok(result);
+        }
+
+        [HttpPost("sync-elastic")]
+        public async Task<IActionResult> SyncElastic()
+        {
+            await _productService.SyncProductsToElasticAsync();
+            return Ok(new { message = "Đồng bộ product sang Elasticsearch thành công" });
+        }
+
+        [HttpGet("search")]
+        public async Task<IActionResult> Search([FromQuery] string keyword)
+        {
+            var result = await _productService.SearchAsync(keyword);
+            return Ok(result);
         }
     }
 }

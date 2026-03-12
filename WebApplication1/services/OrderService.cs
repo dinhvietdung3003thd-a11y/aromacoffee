@@ -365,9 +365,6 @@ namespace WebApplication1.services
             }
         }
 
-        // =========================
-        // UPDATE STATUS (tuỳ bạn dùng)
-        // =========================
         public async Task<int> UpdateStatusAsync(int id, string status)
         {
             const string sql = "UPDATE orders SET status = @status WHERE order_id = @id";
@@ -419,17 +416,6 @@ namespace WebApplication1.services
                                 ORDER BY o.created_at DESC;";
 
             return await _db.QueryAsync<OrderDisplayDTO>(sql, new { key = "%" + key + "%" });
-        }
-        public Task<int> AddAsync(OrderDisplayDTO entity)
-        {
-            // Hàm này bắt buộc phải có theo Interface nhưng chúng ta không dùng đến
-            throw new NotImplementedException("Dùng AddAsync(OrderCreateDTO) để tạo đơn hàng.");
-        }
-
-        public Task<int> UpdateAsync(OrderDisplayDTO entity)
-        {
-            // Hàm này bắt buộc phải có theo Interface nhưng chúng ta không dùng đến
-            throw new NotImplementedException("Dùng UpdateAsync(OrderCreateDTO) để tạo đơn hàng.");
         }
 
         public async Task<IEnumerable<OrderDisplayDTO>> GetOrdersByTableAsync(int tableId)

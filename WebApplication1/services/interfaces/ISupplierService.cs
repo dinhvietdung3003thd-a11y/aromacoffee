@@ -1,11 +1,14 @@
 ﻿using WebApplication1.DTOs.supplier;
-using WebApplication1.Models;
-using WebApplication1.services.interfaces;
 
 namespace WebApplication1.services.interfaces
 {
-    public interface ISupplierService : IBaseService<Supplier>
+    public interface ISupplierService
     {
         Task<IEnumerable<SupplierDisplayDTO>> GetAllDisplayAsync();
+        Task<SupplierDisplayDTO?> GetByIdAsync(int id);
+        Task<int> AddAsync(SupplierDTO dto);
+        Task<int> UpdateAsync(int id, SupplierDTO dto);
+        Task<int> DeleteAsync(int id);
+        Task<IEnumerable<SupplierDisplayDTO>> SearchAsync(string keyword);
     }
 }

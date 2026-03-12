@@ -1,11 +1,14 @@
-﻿using WebApplication1.DTOs;
-using WebApplication1.services.interfaces;
-
+﻿
+using WebApplication1.DTOs.tablefood;
 namespace WebApplication1.services.interfaces
 {
-    public interface ITableService : IBaseService<TableDTO>
+    public interface ITableService
     {
-        // Hàm cập nhật trạng thái bàn (Trống <-> Có người) theo quy trình gọi món
+        Task<IEnumerable<TableDTO>> GetAllDisplayAsync();
+        Task<TableDTO?> GetByIdAsync(int id);
+        Task<int> AddAsync(TableCreateDTO dto);
+        Task<int> UpdateAsync(int id, TableDTO dto);
+        Task<int> DeleteAsync(int id);
         Task<int> UpdateStatusAsync(int id, string status);
     }
 }

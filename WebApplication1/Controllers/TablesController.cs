@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using WebApplication1.DTOs;
+using WebApplication1.DTOs.tablefood;
+using WebApplication1.services;
 using WebApplication1.services.interfaces;
 
 namespace WebApplication1.Controllers
@@ -12,7 +13,7 @@ namespace WebApplication1.Controllers
         public TablesController(ITableService tableService) => _tableService = tableService;
 
         [HttpGet]
-        public async Task<IActionResult> GetAll() => Ok(await _tableService.GetAllAsync());
+        public async Task<IActionResult> GetAll() => Ok(await _tableService.GetAllDisplayAsync());
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
@@ -22,7 +23,7 @@ namespace WebApplication1.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] TableDTO tableDto)
+        public async Task<IActionResult> Create([FromBody] TableCreateDTO tableDto)
         {
             await _tableService.AddAsync(tableDto);
             return Ok(new { message = "Thêm bàn thành công" });
@@ -40,6 +41,20 @@ namespace WebApplication1.Controllers
         {
             await _tableService.DeleteAsync(id);
             return Ok(new { message = "Đã xóa bàn" });
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(int id, [FromBody] TableDTO dto)
+        {
+            if (id != dto.TableId)
+                return BadRequest("Mã bàn không khớp!");
+
+            var rows = await _tableService.UpdateAsync(id, dto);
+
+            if (rows == 0)
+                return NotFound();
+
+            return Ok(new { message = "Cập nhật bàn thành công" });
         }
     }
 }

@@ -1,8 +1,9 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Nest;
+using System.Security.Claims;
 using WebApplication1.DTOs.order;
 using WebApplication1.services.interfaces;
-using Microsoft.AspNetCore.Authorization;
-using System.Security.Claims;
 
 namespace WebApplication1.Controllers
 {
@@ -75,8 +76,8 @@ namespace WebApplication1.Controllers
             try
             {
                 // Service sẽ xóa các món cũ và chèn lại các món mới trong Details
-                await _orderService.UpdateAsync(input);
-                return Ok(new { message = "Cập nhật đơn hàng và chi tiết món thành công!" });
+                var rows = await _orderService.UpdateStatusAsync(id, status);
+                return rows > 0 ? Ok(new { message = "Cập nhật trạng thái thành công" }) : NotFound();
             }
             catch (Exception ex)
             {
@@ -95,9 +96,9 @@ namespace WebApplication1.Controllers
         // 8. Xóa đơn hàng
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
-        {
-            await _orderService.DeleteAsync(id);
-            return Ok(new { message = "Đã xóa đơn hàng" });
+        { 
+            var rows = await _orderService.DeleteAsync(id);
+            return rows > 0 ? Ok(new { message = "Đã xóa đơn hàng" }) : NotFound();
         }
     }
 }

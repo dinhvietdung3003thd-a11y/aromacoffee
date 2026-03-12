@@ -2,17 +2,16 @@
 
 namespace WebApplication1.services.interfaces
 {
-    // Kế thừa IBaseService với kiểu dữ liệu là OrderDisplayDTO
-    public interface IOrderService : IBaseService<OrderDisplayDTO>
+    public interface IOrderService
     {
-        // Ngoài các hàm CRUD cơ bản, Order thường cần thêm hàm cập nhật trạng thái
-        // Ví dụ: Chuyển từ "Chờ thanh toán" sang "Đã thanh toán" hoặc "Đã hủy"
+        Task<IEnumerable<OrderDisplayDTO>> GetAllAsync();
+        Task<OrderDisplayDTO?> GetByIdAsync(int id);
+        Task<IEnumerable<OrderDisplayDTO>> GetOrdersByTableAsync(int tableNumber);
         Task<int> AddByStaffAsync(StaffCreateOrderDTO dto, int userId);
         Task<int> AddByCustomerAsync(CustomerCreateOrderDTO dto, int customerId);
         Task<int> UpdateAsync(OrderUpdateDTO dto);
         Task<int> UpdateStatusAsync(int id, string status);
-         
-        // Bạn có thể thêm hàm lấy đơn hàng theo bàn nếu cần
-        Task<IEnumerable<OrderDisplayDTO>> GetOrdersByTableAsync(int tableNumber);
+        Task<int> DeleteAsync(int id);
+        Task<IEnumerable<OrderDisplayDTO>> SearchAsync(string key);
     }
 }
