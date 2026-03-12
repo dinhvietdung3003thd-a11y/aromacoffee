@@ -55,9 +55,6 @@ namespace WebApplication1.services
                 Description = dto.Description
             };
 
-            await _elasticClient.IndexAsync(product, i => i
-                .Index("aroma_products")
-                .Id(product.ProductId));
             await TryIndexProductAsync(product);
             return id;
         }
@@ -97,9 +94,6 @@ namespace WebApplication1.services
                     Description = dto.Description
                 };
 
-                await _elasticClient.IndexAsync(product, i => i
-                    .Index("aroma_products")
-                    .Id(product.ProductId));
                 await TryIndexProductAsync(product);
             }
 
@@ -146,9 +140,10 @@ namespace WebApplication1.services
                 )
             );
 
-            var products = response.Documents;
+            if (!response.IsValid)
+                return Enumerable.Empty<ProductDTO>();
 
-            var result = products.Select(p => new ProductDTO
+            return response.Documents.Select(p => new ProductDTO
             {
                 ProductId = p.ProductId,
                 Name = p.Name,
@@ -158,9 +153,7 @@ namespace WebApplication1.services
                 IsAvailable = p.IsAvailable,
                 Description = p.Description
             });
-
-            return result;
-        }
+        }   
 
         public async Task SyncProductsToElasticAsync()
         {

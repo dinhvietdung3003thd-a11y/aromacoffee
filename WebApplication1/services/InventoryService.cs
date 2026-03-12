@@ -3,6 +3,7 @@ using System.Data;
 using WebApplication1.DTOs.inventory;
 using WebApplication1.DTOs.report;
 using WebApplication1.services.interfaces;
+using static Dapper.SqlMapper;
 
 namespace WebApplication1.services
 {
@@ -29,7 +30,7 @@ namespace WebApplication1.services
             return await _db.QueryAsync<InventoryDisplayDTO>(sql);
         }
 
-        public async Task<bool> ProcessTransactionAsync(InventoryTransactionDTO dto)
+        public async Task<bool> CreateTransactionAsync(InventoryTransactionDTO dto)
         {
             if (_db.State != ConnectionState.Open) _db.Open();
             using (var transaction = _db.BeginTransaction())
@@ -42,6 +43,22 @@ namespace WebApplication1.services
                              VALUES (@InventoryId, @TransactionType, @Quantity, @Price, @UserId, @Note)";
                     await _db.ExecuteAsync(logSql, dto, transaction);
 
+                    var currentStock = await _db.ExecuteScalarAsync<decimal>(
+                    "SELECT quantity_in_stock FROM inventory WHERE inventory_id = @id",
+                    new { id = dto.InventoryId },
+                    transaction);
+
+                    if (dto.TransactionType == "Export" && currentStock < dto.Quantity)
+                    {
+                        throw new Exception("Không đủ hàng trong kho để xuất.");
+                    }
+
+                    // 2. Insert transaction log
+                    string insertSql = @"INSERT INTO inventory_transactions 
+                             (inventory_id, transaction_type, quantity, user_id, note) 
+                             VALUES (@InventoryId, @TransactionType, @Quantity, @UserId, @Note)";
+
+                    await _db.ExecuteAsync(insertSql, dto, transaction);
                     // 2. Cập nhật số lượng trong bảng inventory
                     // Sử dụng inventory_id thay vì ingredient_id
                     string op = dto.TransactionType == "Import" ? "+" : "-";
@@ -72,22 +89,58 @@ namespace WebApplication1.services
             return await _db.QueryFirstOrDefaultAsync<InventoryDisplayDTO>(sql, new { id });
         }
 
-        public async Task<IEnumerable<InventorySummaryReportDTO>> GetMonthlySummaryAsync(int month, int year)
+        public async Task<IEnumerable<InventorySummaryReportDTO>> GetMonthlySummaryAsync(int year, int month)
         {
+            var startDate = new DateTime(year, month, 1);
+            var endDate = startDate.AddMonths(1);
+
             string sql = @"
         SELECT 
-            i.inventory_id, 
-            i.name as InventoryName, 
-            i.unit,
-            i.quantity_in_stock as ClosingStock,
-            SUM(CASE WHEN t.transaction_type = 'Import' THEN t.quantity ELSE 0 END) as TotalImport,
-            SUM(CASE WHEN t.transaction_type = 'Export' THEN t.quantity ELSE 0 END) as TotalExport
-        FROM inventory i
-        LEFT JOIN inventory_transactions t ON i.inventory_id = t.inventory_id 
-            AND MONTH(t.transaction_date) = @Month AND YEAR(t.transaction_date) = @Year
-        GROUP BY i.inventory_id, i.name, i.unit, i.quantity_in_stock";
+            i.inventory_id AS InventoryId,
+            i.name AS InventoryName,
 
-            return await _db.QueryAsync<InventorySummaryReportDTO>(sql, new { Month = month, Year = year });
+            COALESCE((
+                SELECT SUM(
+                    CASE 
+                        WHEN t.transaction_type = 'Import' THEN t.quantity
+                        WHEN t.transaction_type = 'Export' THEN -t.quantity
+                        ELSE 0
+                    END
+                )
+                FROM inventory_transactions t
+                WHERE t.inventory_id = i.inventory_id
+                  AND t.transaction_date < @StartDate
+            ), 0) AS OpeningStock,
+
+            COALESCE((
+                SELECT SUM(t.quantity)
+                FROM inventory_transactions t
+                WHERE t.inventory_id = i.inventory_id
+                  AND t.transaction_type = 'Import'
+                  AND t.transaction_date >= @StartDate
+                  AND t.transaction_date < @EndDate
+            ), 0) AS TotalImported,
+
+            COALESCE((
+                SELECT SUM(t.quantity)
+                FROM inventory_transactions t
+                WHERE t.inventory_id = i.inventory_id
+                  AND t.transaction_type = 'Export'
+                  AND t.transaction_date >= @StartDate
+                  AND t.transaction_date < @EndDate
+            ), 0) AS TotalExported,
+
+            i.quantity_in_stock AS ClosingStock
+
+        FROM inventory i
+        ORDER BY i.inventory_id;
+    ";
+
+            return await _db.QueryAsync<InventorySummaryReportDTO>(sql, new
+            {
+                StartDate = startDate,
+                EndDate = endDate
+            });
         }
 
         public async Task<IEnumerable<SupplierSpendReportDTO>> GetSupplierSpendAsync(int month, int year)

@@ -69,15 +69,12 @@ namespace WebApplication1.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] OrderUpdateDTO input)
         {
-            // Kiểm tra an toàn: ID trên đường dẫn phải khớp với dữ liệu gửi lên
-            // Gán id từ URL vào thuộc tính OrderId của DTO để Service sử dụng
             input.OrderId = id;
 
             try
             {
-                // Service sẽ xóa các món cũ và chèn lại các món mới trong Details
-                var rows = await _orderService.UpdateStatusAsync(id, status);
-                return rows > 0 ? Ok(new { message = "Cập nhật trạng thái thành công" }) : NotFound();
+                var rows = await _orderService.UpdateAsync(input);
+                return rows > 0 ? Ok(new { message = "Cập nhật đơn hàng thành công" }) : NotFound();
             }
             catch (Exception ex)
             {
@@ -96,7 +93,7 @@ namespace WebApplication1.Controllers
         // 8. Xóa đơn hàng
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
-        { 
+        {
             var rows = await _orderService.DeleteAsync(id);
             return rows > 0 ? Ok(new { message = "Đã xóa đơn hàng" }) : NotFound();
         }

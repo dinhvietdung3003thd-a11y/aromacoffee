@@ -39,8 +39,16 @@ namespace WebApplication1.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CategoryCreateDTO dto)
         {
-            int newid = await _categoryService.AddAsync(dto);
-            return CreatedAtAction(nameof(GetById), new { id = newid }, new {CategoryId = newid});
+            if (dto == null)
+                return BadRequest();
+
+            int newId = await _categoryService.AddAsync(dto);
+
+            return CreatedAtAction(nameof(GetById), new { id = newId }, new
+            {
+                CategoryId = newId,
+                message = "Tạo category thành công"
+            });
         }
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] CategoryDTO dto)
@@ -54,8 +62,8 @@ namespace WebApplication1.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            await _categoryService  .DeleteAsync(id);
-            return NoContent();
+            var rows = await _categoryService.DeleteAsync(id);
+            return rows > 0 ? NoContent() : NotFound();
         }
     }
 }

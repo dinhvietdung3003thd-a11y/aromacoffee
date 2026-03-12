@@ -9,6 +9,7 @@
         public string? Status { get; set; }
         public string? CreatorFullName { get; set; }
         public int? UserId { get; set; }
+        public int? CustomerId { get; set; }
         //public string? ShippingAddress { get; set; }
         //public double? Lat { get; set; }
         //public double? Lng { get; set; }

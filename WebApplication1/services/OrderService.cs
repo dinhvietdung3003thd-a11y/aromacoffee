@@ -62,8 +62,8 @@ namespace WebApplication1.services
                                        LEFT JOIN users u ON o.user_id = u.user_id
                                        WHERE o.order_id = @Id;";
 
-
             var order = await _db.QueryFirstOrDefaultAsync<OrderDisplayDTO>(orderSql, new { Id = id });
+            
             if (order == null) return null;
 
             const string detailSql = @" SELECT od.order_detail_id AS Id,
@@ -79,6 +79,7 @@ namespace WebApplication1.services
                                        ORDER BY od.order_detail_id ASC;";
 
             var details = await _db.QueryAsync<OrderDetailDTO>(detailSql, new { Id = id });
+
             order.Details = details.ToList();
 
             return order;
@@ -97,7 +98,8 @@ namespace WebApplication1.services
     string? note,
     List<OrderDetailCreateDTO> details)
         {
-            if (_db.State != ConnectionState.Open) _db.Open();
+            if (_db.State != ConnectionState.Open)
+                _db.Open();
 
             if (details == null || details.Count == 0)
                 throw new ArgumentException("Order phải có ít nhất 1 sản phẩm.");
@@ -106,67 +108,138 @@ namespace WebApplication1.services
                 throw new ArgumentException("Quantity phải >= 1.");
 
             using var transaction = _db.BeginTransaction();
+
             try
             {
-                const string insertOrderSql = @"INSERT INTO orders
-            (created_at, total_amount, user_id, table_id, status, customer_id, note)
-            VALUES (@OrderDate, 0, @UserId, @TableId, @Status, @CustomerId, @Note);
-            SELECT LAST_INSERT_ID();";
-
-                int orderId = await _db.ExecuteScalarAsync<int>(insertOrderSql, new
-                {
-                    OrderDate = orderDate,
-                    UserId = userId,
-                    TableId = tableId,
-                    Status = status,
-                    CustomerId = customerId,
-                    Note = note
-                }, transaction);
-
-                const string detailSql = @"INSERT INTO order_details
-            (order_id, product_id, quantity, unit_price, subtotal)
-            VALUES (@OrderId, @ProductId, @Quantity, @UnitPrice, @Subtotal);";
-
-                decimal total = 0m;
-
-                foreach (var item in details)
-                {
-                    var price = await _db.ExecuteScalarAsync<decimal>(
-                        "SELECT price FROM products WHERE product_id = @id",
-                        new { id = item.ProductId },
-                        transaction);
-
-                    if (price <= 0)
-                        throw new Exception("Sản phẩm không hợp lệ.");
-
-                    var subtotal = price * item.Quantity;
-                    total += subtotal;
-
-                    await _db.ExecuteAsync(detailSql, new
-                    {
-                        OrderId = orderId,
-                        ProductId = item.ProductId,
-                        Quantity = item.Quantity,
-                        UnitPrice = price,
-                        Subtotal = subtotal
-                    }, transaction);
-                }
-
-                await _db.ExecuteAsync(
-                    "UPDATE orders SET total_amount = @Total WHERE order_id = @OrderId",
-                    new { Total = total, OrderId = orderId },
-                    transaction);
-
+                // 1. Nếu có bàn thì kiểm tra bàn tồn tại và còn trống không
                 if (tableId.HasValue)
                 {
-                    await _db.ExecuteAsync(
-                        "UPDATE tables SET status = 'Occupied' WHERE table_id = @TableId",
+                    const string checkTableSql = @"
+                SELECT status
+                FROM tables
+                WHERE table_id = @TableId;
+            ";
+
+                    var tableStatus = await _db.QueryFirstOrDefaultAsync<string>(
+                        checkTableSql,
                         new { TableId = tableId.Value },
-                        transaction);
+                        transaction
+                    );
+
+                    if (tableStatus == null)
+                        throw new Exception("Bàn không tồn tại.");
+
+                    if (tableStatus != "Available")
+                        throw new Exception("Bàn đang được sử dụng.");
+                }
+
+                // 2. Insert order trước
+                const string insertOrderSql = @"
+            INSERT INTO orders
+            (created_at, total_amount, user_id, table_id, status, customer_id, note)
+            VALUES
+            (@OrderDate, 0, @UserId, @TableId, @Status, @CustomerId, @Note);
+
+            SELECT LAST_INSERT_ID();
+        ";
+
+                int orderId = await _db.ExecuteScalarAsync<int>(
+                    insertOrderSql,
+                    new
+                    {
+                        OrderDate = orderDate,
+                        UserId = userId,
+                        TableId = tableId,
+                        Status = string.IsNullOrWhiteSpace(status) ? "Pending" : status,
+                        CustomerId = customerId,
+                        Note = note
+                    },
+                    transaction
+                );
+
+                // 3. Insert order details + tính total
+                const string productPriceSql = @"
+            SELECT price
+            FROM products
+            WHERE product_id = @ProductId AND is_available = 1;
+        ";
+
+                const string insertDetailSql = @"
+            INSERT INTO order_details
+            (order_id, product_id, quantity, unit_price, subtotal)
+            VALUES
+            (@OrderId, @ProductId, @Quantity, @UnitPrice, @Subtotal);
+        ";
+
+                decimal totalAmount = 0;
+
+                foreach (var d in details)
+                {
+                    var unitPrice = await _db.QueryFirstOrDefaultAsync<decimal?>(
+                        productPriceSql,
+                        new { ProductId = d.ProductId },
+                        transaction
+                    );
+
+                    if (unitPrice == null)
+                        throw new Exception($"Sản phẩm có ID = {d.ProductId} không tồn tại hoặc không khả dụng.");
+
+                    decimal subtotal = unitPrice.Value * d.Quantity;
+                    totalAmount += subtotal;
+
+                    await _db.ExecuteAsync(
+                        insertDetailSql,
+                        new
+                        {
+                            OrderId = orderId,
+                            ProductId = d.ProductId,
+                            Quantity = d.Quantity,
+                            UnitPrice = unitPrice.Value,
+                            Subtotal = subtotal
+                        },
+                        transaction
+                    );
+                }
+
+                // 4. Update total_amount sau khi tính xong
+                const string updateTotalSql = @"
+            UPDATE orders
+            SET total_amount = @TotalAmount
+            WHERE order_id = @OrderId;
+        ";
+
+                await _db.ExecuteAsync(
+                    updateTotalSql,
+                    new
+                    {
+                        OrderId = orderId,
+                        TotalAmount = totalAmount
+                    },
+                    transaction
+                );
+
+                // 5. Nếu có bàn thì chuyển sang Occupied
+                if (tableId.HasValue)
+                {
+                    const string occupyTableSql = @"
+                UPDATE tables
+                SET status = 'Occupied'
+                WHERE table_id = @TableId
+                  AND status = 'Available';
+            ";
+
+                    int affected = await _db.ExecuteAsync(
+                        occupyTableSql,
+                        new { TableId = tableId.Value },
+                        transaction
+                    );
+
+                    if (affected == 0)
+                        throw new Exception("Bàn đã được sử dụng.");
                 }
 
                 transaction.Commit();
-                return (orderId, total);
+                return (orderId, totalAmount);
             }
             catch
             {
@@ -207,7 +280,7 @@ namespace WebApplication1.services
             var result = await AddInternalAsync(
                 dto.OrderDate,
                 dto.TableId,
-                dto.Status,
+                null,
                 null,
                 customerId,
                 dto.Note,
@@ -220,7 +293,7 @@ namespace WebApplication1.services
                 TableId = dto.TableId,
                 UserId = (int?)null,
                 CustomerId = customerId,
-                Status = dto.Status ?? "Pending",
+                Status = "Pending",
                 TotalAmount = result.TotalAmount,
                 Source = "Customer",
                 Message = "Có đơn hàng mới do khách hàng tạo"
@@ -377,13 +450,69 @@ namespace WebApplication1.services
         // =========================
         public async Task<int> DeleteAsync(int id)
         {
-            if (_db.State != ConnectionState.Open) _db.Open();
+            if (_db.State != ConnectionState.Open)
+                _db.Open();
 
             using var transaction = _db.BeginTransaction();
+
             try
             {
-                await _db.ExecuteAsync("DELETE FROM order_details WHERE order_id = @id", new { id }, transaction);
-                var rows = await _db.ExecuteAsync("DELETE FROM orders WHERE order_id = @id", new { id }, transaction);
+                const string getOrderSql = @"
+            SELECT order_id AS OrderId, table_id AS TableId
+            FROM orders
+            WHERE order_id = @Id;
+        ";
+
+                var order = await _db.QueryFirstOrDefaultAsync<dynamic>(
+                    getOrderSql,
+                    new { Id = id },
+                    transaction
+                );
+
+                if (order == null)
+                {
+                    transaction.Rollback();
+                    return 0;
+                }
+
+                int? tableId = order.TableId == null ? (int?)null : (int)order.TableId;
+
+                const string deleteDetailsSql = @"
+            DELETE FROM order_details
+            WHERE order_id = @Id;
+        ";
+
+                await _db.ExecuteAsync(
+                    deleteDetailsSql,
+                    new { Id = id },
+                    transaction
+                );
+
+                const string deleteOrderSql = @"
+            DELETE FROM orders
+            WHERE order_id = @Id;
+        ";
+
+                int rows = await _db.ExecuteAsync(
+                    deleteOrderSql,
+                    new { Id = id },
+                    transaction
+                );
+
+                if (tableId.HasValue)
+                {
+                    const string updateTableSql = @"
+                UPDATE tables
+                SET status = 'Available'
+                WHERE table_id = @TableId;
+            ";
+
+                    await _db.ExecuteAsync(
+                        updateTableSql,
+                        new { TableId = tableId.Value },
+                        transaction
+                    );
+                }
 
                 transaction.Commit();
                 return rows;

@@ -18,8 +18,13 @@ namespace WebApplication1.services
 
         public async Task<int> AddAsync(CategoryCreateDTO dto)
         {
-            string sql = "INSERT INTO categories (name, description) VALUES (@Name, @Description)";
-            return await _db.ExecuteAsync(sql, dto);
+
+            string sql = @"INSERT INTO categories (name, description) VALUES (@Name, @Description);
+                           SELECT LAST_INSERT_ID();
+    ";
+
+            int newId = await _db.ExecuteScalarAsync<int>(sql, dto);
+            return newId;
         }
 
         public async Task<int> UpdateAsync(int id, CategoryDTO dto)
