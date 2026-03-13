@@ -1,5 +1,4 @@
-﻿using WebApplication1.DTOs.recipe;
-using WebApplication1.DTOs.recipes;
+﻿using WebApplication1.DTOs.recipes;
 
 namespace WebApplication1.services.interfaces
 {

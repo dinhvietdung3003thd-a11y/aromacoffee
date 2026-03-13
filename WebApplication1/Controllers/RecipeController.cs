@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using WebApplication1.DTOs.recipe;
+using WebApplication1.DTOs.recipes;
 using WebApplication1.services.interfaces;
 namespace WebApplication1.Controllers
 {

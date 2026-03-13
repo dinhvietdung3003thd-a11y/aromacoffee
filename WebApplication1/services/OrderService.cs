@@ -66,7 +66,7 @@ namespace WebApplication1.services
             
             if (order == null) return null;
 
-            const string detailSql = @" SELECT od.order_detail_id AS Id,
+            const string detailSql = @" SELECT od.order_detail_id AS orderDetailId,
                                                od.order_id AS OrderId,
                                                od.product_id AS ProductId,
                                                p.name AS ProductName,
@@ -337,6 +337,37 @@ namespace WebApplication1.services
                 if (oldStatus == "Completed" || oldStatus == "Cancelled")
                     throw new InvalidOperationException("Đơn hàng đã kết thúc, không thể cập nhật.");
 
+                if (dto.TableId.HasValue && tableIdInDb != dto.TableId)
+                {
+                    var newTable = await _db.QueryFirstOrDefaultAsync<dynamic>(
+                        "SELECT table_id, status FROM tables WHERE table_id = @id",
+                        new { id = dto.TableId.Value },
+                        transaction);
+
+                    if (newTable == null)
+                        throw new Exception("Bàn mới không tồn tại.");
+
+                    string newTableStatus = (string)newTable.status;
+
+                    if (newTableStatus != "Available")
+                        throw new Exception("Bàn mới hiện không khả dụng.");
+
+                    // trả bàn cũ về Available
+                    if (tableIdInDb.HasValue)
+                    {
+                        await _db.ExecuteAsync(
+                            "UPDATE tables SET status = 'Available' WHERE table_id = @id",
+                            new { id = tableIdInDb.Value },
+                            transaction);
+                    }
+
+                    // set bàn mới thành Occupied
+                    await _db.ExecuteAsync(
+                        "UPDATE tables SET status = 'Occupied' WHERE table_id = @id",
+                        new { id = dto.TableId.Value },
+                        transaction);
+                }
+
                 bool justCompleted = oldStatus != "Completed" && dto.Status == "Completed";
 
                 // 1) Update thông tin chung (không ship)
@@ -419,11 +450,13 @@ namespace WebApplication1.services
                 // 6) Nếu completed/cancelled => trả bàn (lấy tableId từ DB)
                 if (dto.Status == "Completed" || dto.Status == "Cancelled")
                 {
-                    if (tableIdInDb.HasValue)
+                    var finalTableId = dto.TableId ?? tableIdInDb;
+
+                    if (finalTableId.HasValue)
                     {
                         await _db.ExecuteAsync(
                             "UPDATE tables SET status = 'Available' WHERE table_id = @TableId",
-                            new { TableId = tableIdInDb.Value },
+                            new { TableId = finalTableId.Value },
                             transaction);
                     }
                 }
@@ -438,10 +471,36 @@ namespace WebApplication1.services
             }
         }
 
-        public async Task<int> UpdateStatusAsync(int id, string status)
+        public async Task<bool> UpdateStatusAsync(int id, string status)
         {
-            const string sql = "UPDATE orders SET status = @status WHERE order_id = @id";
-            return await _db.ExecuteAsync(sql, new { id, status });
+            const string getSql = "SELECT * FROM orders WHERE order_id = @id";
+
+            var order = await _db.QueryFirstOrDefaultAsync<Order>(getSql, new { id });
+
+            if (order == null)
+                return false;
+
+            // Không cho sửa nếu đã kết thúc
+            if (order.Status == "Completed" || order.Status == "Cancelled")
+                return false;
+
+            const string updateSql = @"UPDATE orders 
+                               SET status = @status 
+                               WHERE order_id = @id";
+
+            await _db.ExecuteAsync(updateSql, new { id, status });
+
+            // Nếu order kết thúc -> trả bàn
+            if (status == "Completed" || status == "Cancelled")
+            {
+                const string freeTable = @"UPDATE tables 
+                                   SET status = 'Available' 
+                                   WHERE table_id = @tableId";
+
+                await _db.ExecuteAsync(freeTable, new { tableId = order.TableId });
+            }
+
+            return true;
         }
 
         // =========================

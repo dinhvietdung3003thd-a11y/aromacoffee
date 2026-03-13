@@ -1,5 +1,5 @@
 ﻿using WebApplication1.Models;
-using WebApplication1.DTOs.inventory;
+using WebApplication1.DTOs.inventorys;
 
 namespace WebApplication1.services.interfaces
 {

@@ -1,7 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using WebApplication1.DTOs.categorys;
-using WebApplication1.Models;
-using WebApplication1.services;
 using WebApplication1.services.interfaces;
 
 namespace WebApplication1.Controllers

@@ -1,4 +1,4 @@
-﻿namespace WebApplication1.DTOs.recipe
+﻿namespace WebApplication1.DTOs.recipes
 {
     public class RecipeUpdateDTO
     {
