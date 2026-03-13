@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using WebApplication1.Models;
 using WebApplication1.services.interfaces;
 namespace WebApplication1.Controllers
 {

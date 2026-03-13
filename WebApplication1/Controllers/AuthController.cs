@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using WebApplication1.services.interfaces;
-using WebApplication1.view;
 using WebApplication1.DTOs.account;
 namespace WebApplication1.Controllers
 {

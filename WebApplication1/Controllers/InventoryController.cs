@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using WebApplication1.DTOs.inventory;
+using WebApplication1.DTOs.inventorys;
 using WebApplication1.services.interfaces;
 namespace WebApplication1.Controllers
 {
@@ -32,6 +32,26 @@ namespace WebApplication1.Controllers
         {
             var report = await _inventoryService.GetSupplierSpendAsync(month, year);
             return Ok(report);
+        }
+        [HttpPost]
+        public async Task<IActionResult> Create([FromBody] InventoryCreateDTO dto)
+        {
+            try
+            {
+                var id = await _inventoryService.CreateAsync(dto);
+                return Ok(new
+                {
+                    message = "Tạo nguyên liệu thành công!",
+                    inventoryId = id
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new
+                {
+                    message = ex.Message
+                });
+            }
         }
     }
 }

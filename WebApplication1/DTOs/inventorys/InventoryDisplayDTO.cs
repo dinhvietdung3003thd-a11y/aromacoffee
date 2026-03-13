@@ -1,4 +1,4 @@
-﻿namespace WebApplication1.DTOs.inventory
+﻿namespace WebApplication1.DTOs.inventorys
 {
     public class InventoryDisplayDTO
     {

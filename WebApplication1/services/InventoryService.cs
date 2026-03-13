@@ -1,7 +1,6 @@
 ﻿using Dapper;
 using System.Data;
-using WebApplication1.DTOs.inventory;
-using WebApplication1.DTOs.report;
+using WebApplication1.DTOs.inventorys;
 using WebApplication1.services.interfaces;
 
 namespace WebApplication1.services
@@ -236,6 +235,55 @@ namespace WebApplication1.services
                     EndDate = endDate
                 }
             );
+        }
+        public async Task<int> CreateAsync(InventoryCreateDTO dto)
+        {
+            if (dto == null)
+                throw new Exception("Dữ liệu không hợp lệ.");
+
+            if (string.IsNullOrWhiteSpace(dto.Name))
+                throw new Exception("Tên nguyên liệu không được để trống.");
+
+            if (string.IsNullOrWhiteSpace(dto.Unit))
+                throw new Exception("Đơn vị không được để trống.");
+
+            if (dto.QuantityInStock < 0)
+                throw new Exception("Số lượng tồn không được âm.");
+
+            if (dto.MinThreshold < 0)
+                throw new Exception("Ngưỡng tối thiểu không được âm.");
+
+            const string sql = @"
+        INSERT INTO inventory
+        (
+            name,
+            unit,
+            quantity_in_stock,
+            min_threshold,
+            supplier_id,
+            updated_at
+        )
+        VALUES
+        (
+            @Name,
+            @Unit,
+            @QuantityInStock,
+            @MinThreshold,
+            @SupplierId,
+            NOW()
+        );
+        SELECT LAST_INSERT_ID();";
+
+            var id = await _db.ExecuteScalarAsync<int>(sql, new
+            {
+                dto.Name,
+                dto.Unit,
+                dto.QuantityInStock,
+                dto.MinThreshold,
+                dto.SupplierId
+            });
+
+            return id;
         }
     }
 }

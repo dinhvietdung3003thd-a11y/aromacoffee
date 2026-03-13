@@ -21,6 +21,7 @@ builder.Services.AddScoped<IInventoryService, InventoryService>();
 builder.Services.AddScoped<IInventoryTransactionService, InventoryTransactionService>();
 builder.Services.AddScoped<IRecipeService, RecipeService>();
 builder.Services.AddScoped<ISupplierService, SupplierService>();
+builder.Services.AddAuthorization();
 
 // --- 2. Cấu hình Database (MySQL + Dapper) ---
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");

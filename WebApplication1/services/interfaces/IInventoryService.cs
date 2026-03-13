@@ -1,5 +1,4 @@
-﻿using WebApplication1.DTOs.inventory;
-using WebApplication1.DTOs.report;
+﻿using WebApplication1.DTOs.inventorys;
 
 namespace WebApplication1.services.interfaces
 {
@@ -11,6 +10,7 @@ namespace WebApplication1.services.interfaces
         Task<bool> CreateTransactionAsync(InventoryTransactionDTO dto);
         Task<IEnumerable<InventorySummaryReportDTO>> GetMonthlySummaryAsync(int month, int year);
         Task<IEnumerable<SupplierSpendReportDTO>> GetSupplierSpendAsync(int month, int year);
+        Task<int> CreateAsync(InventoryCreateDTO dto);
 
     }
 }

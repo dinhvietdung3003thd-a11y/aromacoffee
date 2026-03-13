@@ -10,7 +10,7 @@ namespace WebApplication1.services.interfaces
         Task<int> AddByStaffAsync(StaffCreateOrderDTO dto, int userId);
         Task<int> AddByCustomerAsync(CustomerCreateOrderDTO dto, int customerId);
         Task<int> UpdateAsync(OrderUpdateDTO dto);
-        Task<int> UpdateStatusAsync(int id, string status);
+        Task<bool> UpdateStatusAsync(int id, string status);
         Task<int> DeleteAsync(int id);
         Task<IEnumerable<OrderDisplayDTO>> SearchAsync(string key);
     }
