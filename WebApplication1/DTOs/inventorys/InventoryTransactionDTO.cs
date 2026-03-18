@@ -4,17 +4,20 @@ namespace WebApplication1.DTOs.inventorys
 {
     public class InventoryTransactionDTO
     {
-        [Required]
+        [Range(1, int.MaxValue, ErrorMessage = "InventoryId phải > 0")]
         public int InventoryId { get; set; }
 
-        [Required]
-        public string TransactionType { get; set; } = "Import"; // 'Import' hoặc 'Export'
+        [Required(ErrorMessage = "TransactionType không được để trống")]
+        [RegularExpression("Import|Export", ErrorMessage = "TransactionType phải là Import hoặc Export")]
+        public string TransactionType { get; set; } = "Import";
 
         [Range(0.0001, double.MaxValue, ErrorMessage = "Quantity phải > 0")]
         public decimal Quantity { get; set; }
 
-        //sau khi them authorize thi loai bo userId va lay tu token
-        public int UserId { get; set; } // Người thực hiện
+        // sau này thêm authorize thì bỏ khỏi body và lấy từ token
+        public int UserId { get; set; }
+
+        [StringLength(500, ErrorMessage = "Note tối đa 500 ký tự")]
         public string? Note { get; set; }
 
         [Range(0, double.MaxValue, ErrorMessage = "Price phải >= 0")]

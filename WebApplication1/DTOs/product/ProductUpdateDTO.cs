@@ -4,6 +4,7 @@ namespace WebApplication1.DTOs.product
 {
     public class ProductUpdateDTO
     {
+        [Range(1, int.MaxValue)]
         public int ProductId { get; set; }
 
         [Required]
