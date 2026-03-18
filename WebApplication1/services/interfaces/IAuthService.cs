@@ -7,8 +7,9 @@ namespace WebApplication1.services.interfaces
     {
         Task<Object?> LoginAsync(LoginRequest request);
         Task<int> RegisterAsync( RegisterRequest request);
-
         Task<CustomerAccountDTO?> CustomerLoginAsync(LoginRequest request);
         Task<int> CustomerRegisterAsync(CustomerRegisterRequest request);
+        Task<int> SetupFirstAdminAsync(SetupFirstAdminRequest request);
+        Task<bool> HasAnyAdminAsync();
     }
 }

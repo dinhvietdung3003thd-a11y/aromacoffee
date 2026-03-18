@@ -1,5 +1,4 @@
 ﻿using Dapper;
-using BCrypt.Net;
 using Microsoft.IdentityModel.Tokens;
 using System.Data;
 using System.IdentityModel.Tokens.Jwt;
@@ -119,17 +118,48 @@ namespace WebApplication1.services
             };
         }
 
-        public async Task<int> RegisterAsync(RegisterRequest request)
+        public async Task<int> SetupFirstAdminAsync(SetupFirstAdminRequest request)
         {
-            var existingUser = await _db.QueryFirstOrDefaultAsync<Account>(
-                "SELECT * FROM users WHERE username = @u", new { u = request.Username });
+            var adminCount = await _db.ExecuteScalarAsync<int>(
+                "SELECT COUNT(*) FROM users WHERE role = 'Admin'");
 
-            if (existingUser != null) return -1;
+            if (adminCount > 0)
+                return -1; // đã có admin đầu tiên
+
+            var existingUser = await _db.QueryFirstOrDefaultAsync<Account>(
+                "SELECT * FROM users WHERE username = @u",
+                new { u = request.Username });
+
+            if (existingUser != null)
+                return -2; // username đã tồn tại
 
             string hashedPassword = HashPassword(request.Password);
 
-            string sql = @"INSERT INTO users (username, password_hash, full_name, role, phone_number) 
-                           VALUES (@Username, @PasswordHash, @FullName, @Role, @PhoneNumber)";
+            string sql = @"INSERT INTO users (username, password_hash, full_name, role, phone_number, is_active) 
+                           VALUES (@Username, @PasswordHash, @FullName, 'Admin', @PhoneNumber, 1)";
+
+            return await _db.ExecuteAsync(sql, new
+            {
+                request.Username,
+                PasswordHash = hashedPassword,
+                request.FullName,
+                request.PhoneNumber
+            });
+        }
+
+        public async Task<int> RegisterAsync(RegisterRequest request)
+        {
+            var existingUser = await _db.QueryFirstOrDefaultAsync<Account>(
+                "SELECT * FROM users WHERE username = @u",
+                new { u = request.Username });
+
+            if (existingUser != null)
+                return -1;
+
+            string hashedPassword = HashPassword(request.Password);
+
+            string sql = @"INSERT INTO users (username, password_hash, full_name, role, phone_number, is_active) 
+                           VALUES (@Username, @PasswordHash, @FullName, @Role, @PhoneNumber, 1)";
 
             return await _db.ExecuteAsync(sql, new
             {
@@ -144,7 +174,8 @@ namespace WebApplication1.services
         public async Task<int> CustomerRegisterAsync(CustomerRegisterRequest request)
         {
             var existing = await _db.QueryFirstOrDefaultAsync(
-                "SELECT customer_id FROM customers WHERE username = @u", new { u = request.Username });
+                "SELECT customer_id FROM customers WHERE username = @u",
+                new { u = request.Username });
 
             if (existing != null) return -1;
 
@@ -198,6 +229,13 @@ namespace WebApplication1.services
                 LoyaltyPoints = customer.LoyaltyPoints,
                 Token = token
             };
+        }
+        public async Task<bool> HasAnyAdminAsync()
+        {
+            var adminCount = await _db.ExecuteScalarAsync<int>(
+                "SELECT COUNT(*) FROM users WHERE role = 'Admin'");
+
+            return adminCount > 0;
         }
     }
 }
