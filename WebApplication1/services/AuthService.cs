@@ -1,10 +1,9 @@
 ﻿using Dapper;
-using Microsoft.Extensions.Configuration;
+using BCrypt.Net;
 using Microsoft.IdentityModel.Tokens;
 using System.Data;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Security.Cryptography;
 using System.Text;
 using WebApplication1.DTOs.account;
 using WebApplication1.Models;
@@ -16,29 +15,28 @@ namespace WebApplication1.services
     {
         private readonly IDbConnection _db;
         private readonly IConfiguration _configuration;
+
         public AuthService(IDbConnection db, IConfiguration configuration)
         {
             _db = db;
             _configuration = configuration;
         }
 
-        private string HashPassword(string password)
+        public string HashPassword(string password)
         {
-            using var sha256 = SHA256.Create();
-            byte[] bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
-            return BitConverter.ToString(bytes).Replace("-", "").ToLower();
+            return BCrypt.Net.BCrypt.HashPassword(password);
         }
 
-        // So sánh chuỗi vừa băm với chuỗi trong Database (không phân biệt hoa thường)
-        private bool VerifyPassword(string hashedInput, string hashedPasswordFromDb)
+        public bool VerifyPassword(string password, string hash)
         {
-            return string.Equals(hashedInput, hashedPasswordFromDb, StringComparison.OrdinalIgnoreCase);
+            return BCrypt.Net.BCrypt.Verify(password, hash);
         }
+
         private string GenerateJwtToken(Account user)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
             var secretKey = _configuration["Jwt:Key"];
-            var key = Encoding.UTF8.GetBytes(secretKey);
+            var key = Encoding.UTF8.GetBytes(secretKey!);
 
             var tokenDescriptor = new SecurityTokenDescriptor
             {
@@ -49,7 +47,7 @@ namespace WebApplication1.services
                     new Claim(ClaimTypes.Role, user.Role ?? "Staff")
                 }),
                 Expires = DateTime.UtcNow.AddDays(7),
-                SigningCredentials = new SigningCredentials(    
+                SigningCredentials = new SigningCredentials(
                     new SymmetricSecurityKey(key),
                     SecurityAlgorithms.HmacSha256Signature)
             };
@@ -61,7 +59,8 @@ namespace WebApplication1.services
         private string GenerateCustomerJwtToken(int customerId, string username)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.UTF8.GetBytes(_configuration["Jwt:Key"] ?? "Chuoi_Key_Bao_Mat_Cua_Aroma_Cafe_2026");
+            var secretKey = _configuration["Jwt:Key"];
+            var key = Encoding.UTF8.GetBytes(secretKey!);
 
             var tokenDescriptor = new SecurityTokenDescriptor
             {
@@ -81,43 +80,56 @@ namespace WebApplication1.services
             return tokenHandler.WriteToken(token);
         }
 
-        // Đổi kiểu trả về thành Task<object?>
         public async Task<object?> LoginAsync(LoginRequest request)
         {
-            string hashedInput = HashPassword(request.Password);
-            string sql = "SELECT * FROM users WHERE username = @u AND password_hash = @p AND is_active = 1";
+            string sql = @"SELECT 
+                                user_id AS UserId,
+                                username AS Username,
+                                password_hash AS PasswordHash,
+                                full_name AS FullName,
+                                role AS Role,
+                                phone_number AS PhoneNumber,
+                                is_active AS IsActive
+                           FROM users
+                           WHERE username = @u AND is_active = 1";
 
-            var user = await _db.QueryFirstOrDefaultAsync<Account>(sql, new { u = request.Username, p = hashedInput });
+            var user = await _db.QueryFirstOrDefaultAsync<Account>(sql, new
+            {
+                u = request.Username
+            });
+
             if (user == null) return null;
+            if (string.IsNullOrEmpty(user.PasswordHash)) return null;
 
-            // 2. Tạo Token bằng hàm nội bộ đã viết
+            bool isPasswordValid = VerifyPassword(request.Password, user.PasswordHash);
+            if (!isPasswordValid) return null;
+
             var token = GenerateJwtToken(user);
 
-            // 3. Trả về đối tượng ẩn danh (Anonymous Object) chứa cả Token
             return new
             {
-                Token = token, // Đây là phần quan trọng nhất để phân quyền
+                Token = token,
                 User = new
                 {
                     user.UserId,
                     user.FullName,
-                    user.Role, // Vai trò Admin/Staff để kiểm tra quyền
+                    user.Role,
                     user.PhoneNumber
                 }
             };
         }
+
         public async Task<int> RegisterAsync(RegisterRequest request)
         {
-            // 1. Kiểm tra username đã tồn tại chưa
             var existingUser = await _db.QueryFirstOrDefaultAsync<Account>(
                 "SELECT * FROM users WHERE username = @u", new { u = request.Username });
 
-            if (existingUser != null) return -1; // Đã tồn tại
+            if (existingUser != null) return -1;
 
-            // 2. Băm mật khẩu và lưu
             string hashedPassword = HashPassword(request.Password);
+
             string sql = @"INSERT INTO users (username, password_hash, full_name, role, phone_number) 
-                   VALUES (@Username, @PasswordHash, @FullName, @Role, @PhoneNumber)";
+                           VALUES (@Username, @PasswordHash, @FullName, @Role, @PhoneNumber)";
 
             return await _db.ExecuteAsync(sql, new
             {
@@ -129,20 +141,17 @@ namespace WebApplication1.services
             });
         }
 
-        // Thêm logic cho khách hàng vào AuthService
         public async Task<int> CustomerRegisterAsync(CustomerRegisterRequest request)
         {
-            // 1. Kiểm tra tài khoản tồn tại trong bảng customers
             var existing = await _db.QueryFirstOrDefaultAsync(
                 "SELECT customer_id FROM customers WHERE username = @u", new { u = request.Username });
+
             if (existing != null) return -1;
 
-            // 2. Băm mật khẩu (Dùng chung hàm SHA256 đã có)
             string hashedPassword = HashPassword(request.Password);
 
-            // 3. Lưu vào database
             string sql = @"INSERT INTO customers (username, password_hash, full_name, phone_number, email, loyalty_points) 
-                   VALUES (@Username, @PasswordHash, @FullName, @PhoneNumber, @Email, 0)";
+                           VALUES (@Username, @PasswordHash, @FullName, @PhoneNumber, @Email, 0)";
 
             return await _db.ExecuteAsync(sql, new
             {
@@ -156,30 +165,37 @@ namespace WebApplication1.services
 
         public async Task<CustomerAccountDTO?> CustomerLoginAsync(LoginRequest request)
         {
-            string hashedInput = HashPassword(request.Password);
+            string sql = @"SELECT 
+                                customer_id AS CustomerId,
+                                username AS Username,
+                                password_hash AS PasswordHash,
+                                full_name AS FullName,
+                                loyalty_points AS LoyaltyPoints,
+                                phone_number AS PhoneNumber,
+                                email AS Email,
+                                created_at AS CreatedAt
+                           FROM customers
+                           WHERE username = @u";
 
-            string sql = @"SELECT customer_id, username, full_name, loyalty_points
-                   FROM customers
-                   WHERE username = @u AND password_hash = @p";
-
-            var customer = await _db.QueryFirstOrDefaultAsync(sql, new
+            var customer = await _db.QueryFirstOrDefaultAsync<Customer>(sql, new
             {
-                u = request.Username,
-                p = hashedInput
+                u = request.Username
             });
 
             if (customer == null) return null;
+            if (string.IsNullOrEmpty(customer.PasswordHash) || string.IsNullOrEmpty(customer.Username))
+                return null;
 
-            string token = GenerateCustomerJwtToken(
-                (int)customer.customer_id,
-                (string)customer.username
-            );
+            bool isPasswordValid = VerifyPassword(request.Password, customer.PasswordHash);
+            if (!isPasswordValid) return null;
+
+            string token = GenerateCustomerJwtToken(customer.CustomerId, customer.Username);
 
             return new CustomerAccountDTO
             {
-                CustomerId = customer.customer_id,
-                FullName = customer.full_name,
-                LoyaltyPoints = customer.loyalty_points,
+                CustomerId = customer.CustomerId,
+                FullName = customer.FullName,
+                LoyaltyPoints = customer.LoyaltyPoints,
                 Token = token
             };
         }

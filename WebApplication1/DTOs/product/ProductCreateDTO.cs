@@ -4,7 +4,7 @@ namespace WebApplication1.DTOs.product
 {
     public class ProductCreateDTO
     {
-        [Required]
+        [Required(ErrorMessage = "Tên sản phẩm không được để trống")]
         public string Name { get; set; } = string.Empty;
 
         [Range(0, double.MaxValue, ErrorMessage = "Price phải >= 0")]
