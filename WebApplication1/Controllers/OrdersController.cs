@@ -1,6 +1,7 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using WebApplication1.Common;
 using WebApplication1.DTOs.order;
 using WebApplication1.services.interfaces;
 
@@ -115,11 +116,30 @@ namespace WebApplication1.Controllers
             if (string.IsNullOrWhiteSpace(status))
                 return BadRequest(new { message = "Trạng thái không được để trống." });
 
-            var updated = await _orderService.UpdateStatusAsync(id, status);
-            if (!updated)
-                return BadRequest(new { message = "Không thể cập nhật trạng thái đơn hàng." });
+            var normalizedStatus = status.Trim();
+            if (!StatusConstants.OrderStatuses.Contains(normalizedStatus))
+                return BadRequest(new { message = "Trạng thái đơn hàng không hợp lệ." });
 
-            return Ok(new { message = "Cập nhật trạng thái thành công" });
+            try
+            {
+                var updated = await _orderService.UpdateStatusAsync(id, normalizedStatus);
+                if (!updated)
+                    return NotFound(new { message = "Không thể cập nhật trạng thái đơn hàng." });
+
+                return Ok(new { message = "Cập nhật trạng thái thành công" });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi khi cập nhật trạng thái đơn hàng.", detail = ex.Message });
+            }
         }
 
         // 8. Xóa đơn hàng
@@ -127,7 +147,7 @@ namespace WebApplication1.Controllers
         public async Task<IActionResult> Delete(int id)
         {
             var rows = await _orderService.DeleteAsync(id);
-            return rows > 0 ? Ok(new { message = "Đã xóa đơn hàng" }) : NotFound();
+            return rows > 0 ? Ok(new { message = "Đã xóa đơn hàng" }) : NotFound(new { message = "Không tìm thấy đơn hàng." });
         }
     }
 }

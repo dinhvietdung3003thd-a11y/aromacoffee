@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using WebApplication1.DTOs.categorys;
 using WebApplication1.services.interfaces;
 
@@ -35,10 +36,11 @@ namespace WebApplication1.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Admin,Staff")]
         public async Task<IActionResult> Create([FromBody] CategoryCreateDTO dto)
         {
             if (dto == null)
-                return BadRequest();
+                return BadRequest(new { message = "Dữ liệu không hợp lệ." });
 
             int newId = await _categoryService.AddAsync(dto);
 
@@ -49,19 +51,21 @@ namespace WebApplication1.Controllers
             });
         }
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin,Staff")]
         public async Task<IActionResult> Update(int id, [FromBody] CategoryDTO dto)
         {
             var result = await _categoryService.UpdateAsync(id, dto);
             return result > 0
                 ? Ok(new { message = "Cập nhật thành công" })
-                : NotFound();
+                : NotFound(new { message = "Không tìm thấy danh mục." });
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin,Staff")]
         public async Task<IActionResult> Delete(int id)
         {
             var rows = await _categoryService.DeleteAsync(id);
-            return rows > 0 ? NoContent() : NotFound();
+            return rows > 0 ? Ok(new { message = "Xóa danh mục thành công" }) : NotFound(new { message = "Không tìm thấy danh mục." });
         }
     }
 }
