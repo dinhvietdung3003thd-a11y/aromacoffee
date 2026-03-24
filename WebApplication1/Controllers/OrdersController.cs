@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Nest;
 using System.Security.Claims;
 using WebApplication1.DTOs.order;
 using WebApplication1.services.interfaces;
@@ -9,6 +8,7 @@ namespace WebApplication1.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Roles = "Admin,Staff")]
     public class OrdersController : ControllerBase
     {
         private readonly IOrderService _orderService;
@@ -59,10 +59,22 @@ namespace WebApplication1.Controllers
             if (string.IsNullOrEmpty(userIdClaim))
                 return Unauthorized(new { message = "Không lấy được userId từ token" });
 
-            int userId = int.Parse(userIdClaim);
+            if (!int.TryParse(userIdClaim, out int userId))
+                return Unauthorized(new { message = "Định danh người dùng trong token không hợp lệ." });
 
-            int newId = await _orderService.AddByStaffAsync(input, userId);
-            return CreatedAtAction(nameof(GetById), new { id = newId }, new { OrderId = newId });
+            try
+            {
+                int newId = await _orderService.AddByStaffAsync(input, userId);
+                return CreatedAtAction(nameof(GetById), new { id = newId }, new { OrderId = newId });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(new { message = ex.Message });
+            }
         }
 
         // 6. Cập nhật thông tin đơn hàng
@@ -74,7 +86,21 @@ namespace WebApplication1.Controllers
             try
             {
                 var rows = await _orderService.UpdateAsync(input);
-                return rows > 0 ? Ok(new { message = "Cập nhật đơn hàng thành công" }) : NotFound();
+                return rows > 0
+                    ? Ok(new { message = "Cập nhật đơn hàng thành công" })
+                    : NotFound(new { message = "Không tìm thấy đơn hàng." });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(new { message = ex.Message });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
             }
             catch (Exception ex)
             {
@@ -86,7 +112,13 @@ namespace WebApplication1.Controllers
         [HttpPatch("{id}/status")]
         public async Task<IActionResult> UpdateStatus(int id, [FromBody] string status)
         {
-            await _orderService.UpdateStatusAsync(id, status);
+            if (string.IsNullOrWhiteSpace(status))
+                return BadRequest(new { message = "Trạng thái không được để trống." });
+
+            var updated = await _orderService.UpdateStatusAsync(id, status);
+            if (!updated)
+                return BadRequest(new { message = "Không thể cập nhật trạng thái đơn hàng." });
+
             return Ok(new { message = "Cập nhật trạng thái thành công" });
         }
 

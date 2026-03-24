@@ -127,10 +127,10 @@ namespace WebApplication1.services
                     );
 
                     if (tableStatus == null)
-                        throw new Exception("Bàn không tồn tại.");
+                        throw new InvalidOperationException("Bàn không tồn tại.");
 
                     if (tableStatus != "Available")
-                        throw new Exception("Bàn đang được sử dụng.");
+                        throw new InvalidOperationException("Bàn đang được sử dụng.");
                 }
 
                 // 2. Insert order trước
@@ -182,7 +182,7 @@ namespace WebApplication1.services
                     );
 
                     if (unitPrice == null)
-                        throw new Exception($"Sản phẩm có ID = {d.ProductId} không tồn tại hoặc không khả dụng.");
+                        throw new InvalidOperationException($"Sản phẩm có ID = {d.ProductId} không tồn tại hoặc không khả dụng.");
 
                     decimal subtotal = unitPrice.Value * d.Quantity;
                     totalAmount += subtotal;
@@ -235,7 +235,7 @@ namespace WebApplication1.services
                     );
 
                     if (affected == 0)
-                        throw new Exception("Bàn đã được sử dụng.");
+                        throw new InvalidOperationException("Bàn đã được sử dụng.");
                 }
 
                 transaction.Commit();
@@ -327,7 +327,7 @@ namespace WebApplication1.services
                     transaction);
 
                 if (meta == null)
-                    throw new Exception("Không tìm thấy đơn hàng.");
+                    throw new KeyNotFoundException("Không tìm thấy đơn hàng.");
 
                 string oldStatus = (string)meta.status;
                 int? tableIdInDb = (int?)meta.table_id;
@@ -345,12 +345,12 @@ namespace WebApplication1.services
                         transaction);
 
                     if (newTable == null)
-                        throw new Exception("Bàn mới không tồn tại.");
+                        throw new InvalidOperationException("Bàn mới không tồn tại.");
 
                     string newTableStatus = (string)newTable.status;
 
                     if (newTableStatus != "Available")
-                        throw new Exception("Bàn mới hiện không khả dụng.");
+                        throw new InvalidOperationException("Bàn mới hiện không khả dụng.");
 
                     // trả bàn cũ về Available
                     if (tableIdInDb.HasValue)
@@ -401,15 +401,20 @@ namespace WebApplication1.services
 
                 foreach (var item in dto.Details)
                 {
-                    var price = await _db.ExecuteScalarAsync<decimal>(
-                        "SELECT price FROM products WHERE product_id = @id",
-                        new { id = item.ProductId },
+                    var price = await _db.QueryFirstOrDefaultAsync<decimal?>(
+                        @"SELECT price
+                          FROM products
+                          WHERE product_id = @Id AND is_available = 1",
+                        new { Id = item.ProductId },
                         transaction);
 
-                    if (price <= 0)
-                        throw new Exception("Sản phẩm không hợp lệ.");
+                    if (price == null)
+                        throw new InvalidOperationException($"Sản phẩm có ID = {item.ProductId} không tồn tại hoặc không khả dụng.");
 
-                    var subtotal = item.Quantity * price;
+                    if (price <= 0)
+                        throw new InvalidOperationException($"Giá sản phẩm ID = {item.ProductId} không hợp lệ.");
+
+                    var subtotal = item.Quantity * price.Value;
                     total += subtotal;
 
                     await _db.ExecuteAsync(insertDetailSql, new
@@ -417,7 +422,7 @@ namespace WebApplication1.services
                         OrderId = dto.OrderId,
                         ProductId = item.ProductId,
                         Quantity = item.Quantity,
-                        UnitPrice = price,
+                        UnitPrice = price.Value,
                         Subtotal = subtotal
                     }, transaction);
                 }
