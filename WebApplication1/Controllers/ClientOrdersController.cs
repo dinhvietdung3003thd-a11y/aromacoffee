@@ -25,10 +25,22 @@ namespace WebApplication1.Controllers
             if (string.IsNullOrEmpty(customerIdClaim))
                 return Unauthorized(new { message = "Không lấy được customerId từ token" });
 
-            int customerId = int.Parse(customerIdClaim);
+            if (!int.TryParse(customerIdClaim, out int customerId))
+                return Unauthorized(new { message = "Định danh khách hàng trong token không hợp lệ." });
 
-            int newId = await _orderService.AddByCustomerAsync(input, customerId);
-            return CreatedAtAction(nameof(GetById), new { id = newId }, new { OrderId = newId });
+            try
+            {
+                int newId = await _orderService.AddByCustomerAsync(input, customerId);
+                return CreatedAtAction(nameof(GetById), new { id = newId }, new { OrderId = newId });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(new { message = ex.Message });
+            }
         }
 
         [Authorize]
@@ -39,7 +51,8 @@ namespace WebApplication1.Controllers
             if (string.IsNullOrEmpty(customerIdClaim))
                 return Unauthorized(new { message = "Không xác định được khách hàng." });
 
-            int customerId = int.Parse(customerIdClaim);
+            if (!int.TryParse(customerIdClaim, out int customerId))
+                return Unauthorized(new { message = "Định danh khách hàng trong token không hợp lệ." });
 
             var order = await _orderService.GetByIdAsync(id);
             if (order == null)
