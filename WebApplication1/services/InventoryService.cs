@@ -52,15 +52,15 @@ namespace WebApplication1.services
         public async Task<bool> CreateTransactionAsync(InventoryTransactionDTO dto)
         {
             if (dto == null)
-                return false;
+                throw new ArgumentException("Dữ liệu giao dịch kho không hợp lệ.");
 
             if (dto.InventoryId <= 0 || dto.Quantity <= 0 || string.IsNullOrWhiteSpace(dto.TransactionType))
-                return false;
+                throw new ArgumentException("Thông tin giao dịch kho không hợp lệ.");
 
             string transactionType = dto.TransactionType.Trim();
 
             if (transactionType != "Import" && transactionType != "Export")
-                return false;
+                throw new ArgumentException("Loại giao dịch phải là Import hoặc Export.");
 
             if (_db.State != ConnectionState.Open)
                 _db.Open();
@@ -81,10 +81,10 @@ namespace WebApplication1.services
                 );
 
                 if (currentStock == null)
-                    throw new Exception("Nguyên liệu không tồn tại.");
+                    throw new KeyNotFoundException("Nguyên liệu không tồn tại.");
 
                 if (transactionType == "Export" && currentStock.Value < dto.Quantity)
-                    throw new Exception("Số lượng tồn kho không đủ để xuất.");
+                    throw new InvalidOperationException("Số lượng tồn kho không đủ để xuất.");
 
                 string updateStockSql = transactionType == "Import"
                     ? @"
@@ -107,7 +107,7 @@ namespace WebApplication1.services
                 );
 
                 if (updatedRows == 0)
-                    throw new Exception("Không thể cập nhật tồn kho.");
+                    throw new InvalidOperationException("Không thể cập nhật tồn kho.");
 
                 const string insertTransactionSql = @"
                     INSERT INTO inventory_transactions
@@ -149,7 +149,7 @@ namespace WebApplication1.services
             catch
             {
                 transaction.Rollback();
-                return false;
+                throw;
             }
         }
 

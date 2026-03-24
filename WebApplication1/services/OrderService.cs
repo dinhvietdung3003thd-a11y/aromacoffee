@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using WebApplication1.DTOs.order;
 using WebApplication1.Hubs;
 using WebApplication1.Models;
+using WebApplication1.Common;
 using WebApplication1.services.interfaces;
 
 namespace WebApplication1.services
@@ -106,6 +107,14 @@ namespace WebApplication1.services
 
             if (details.Any(d => d.Quantity <= 0))
                 throw new ArgumentException("Quantity phải >= 1.");
+
+            if (!string.IsNullOrWhiteSpace(status))
+            {
+                var normalizedStatus = status.Trim();
+                if (!StatusConstants.OrderStatuses.Contains(normalizedStatus))
+                    throw new ArgumentException("Trạng thái đơn hàng không hợp lệ.");
+                status = normalizedStatus;
+            }
 
             using var transaction = _db.BeginTransaction();
 
@@ -318,6 +327,13 @@ namespace WebApplication1.services
             if (dto.Details.Any(d => d.Quantity <= 0))
                 throw new ArgumentException("Quantity phải >= 1.");
 
+            if (string.IsNullOrWhiteSpace(dto.Status))
+                throw new ArgumentException("Trạng thái đơn hàng không được để trống.");
+
+            var normalizedStatus = dto.Status.Trim();
+            if (!StatusConstants.OrderStatuses.Contains(normalizedStatus))
+                throw new ArgumentException("Trạng thái đơn hàng không hợp lệ.");
+
             using var transaction = _db.BeginTransaction();
             try
             {
@@ -368,7 +384,7 @@ namespace WebApplication1.services
                         transaction);
                 }
 
-                bool justCompleted = oldStatus != "Completed" && dto.Status == "Completed";
+                bool justCompleted = oldStatus != "Completed" && normalizedStatus == "Completed";
 
                 // 1) Update thông tin chung (không ship)
                 const string updateOrderSql = @" UPDATE orders SET
@@ -380,7 +396,7 @@ namespace WebApplication1.services
 
                 await _db.ExecuteAsync(updateOrderSql, new
                 {
-                    dto.Status,
+                    Status = normalizedStatus,
                     dto.Note,
                     dto.TableId,
                     CustomerId = dto.CustomerId ?? customerIdInDb,
@@ -453,7 +469,7 @@ namespace WebApplication1.services
                 }
 
                 // 6) Nếu completed/cancelled => trả bàn (lấy tableId từ DB)
-                if (dto.Status == "Completed" || dto.Status == "Cancelled")
+                if (normalizedStatus == "Completed" || normalizedStatus == "Cancelled")
                 {
                     var finalTableId = dto.TableId ?? tableIdInDb;
 
@@ -478,6 +494,13 @@ namespace WebApplication1.services
 
         public async Task<bool> UpdateStatusAsync(int id, string status)
         {
+            if (string.IsNullOrWhiteSpace(status))
+                throw new ArgumentException("Trạng thái đơn hàng không được để trống.");
+
+            var normalizedStatus = status.Trim();
+            if (!StatusConstants.OrderStatuses.Contains(normalizedStatus))
+                throw new ArgumentException("Trạng thái đơn hàng không hợp lệ.");
+
             const string getSql = "SELECT * FROM orders WHERE order_id = @id";
 
             var order = await _db.QueryFirstOrDefaultAsync<Order>(getSql, new { id });
@@ -493,10 +516,10 @@ namespace WebApplication1.services
                                SET status = @status 
                                WHERE order_id = @id";
 
-            await _db.ExecuteAsync(updateSql, new { id, status });
+            await _db.ExecuteAsync(updateSql, new { id, status = normalizedStatus });
 
             // Nếu order kết thúc -> trả bàn
-            if (status == "Completed" || status == "Cancelled")
+            if (normalizedStatus == "Completed" || normalizedStatus == "Cancelled")
             {
                 const string freeTable = @"UPDATE tables 
                                    SET status = 'Available' 

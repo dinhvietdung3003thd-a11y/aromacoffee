@@ -23,31 +23,41 @@ namespace WebApplication1.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Admin,Staff")]
         public async Task<IActionResult> Create(ProductCreateDTO input)
         {
-            var id = await _productService.AddAsync(input);
-            return CreatedAtAction(nameof(GetById), new { id }, new { ProductId = id });
+            try
+            {
+                var id = await _productService.AddAsync(input);
+                return CreatedAtAction(nameof(GetById), new { id }, new { ProductId = id, message = "Tạo sản phẩm thành công" });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin,Staff")]
         public async Task<IActionResult> Update(int id, ProductUpdateDTO input)
         {
             if (id != input.ProductId)
-                return BadRequest("Mã sản phẩm không khớp!");
+                return BadRequest(new { message = "Mã sản phẩm không khớp!" });
 
             var rows = await _productService.UpdateAsync(id, input);
 
             if (rows == 0)
-                return NotFound();
+                return NotFound(new { message = "Không tìm thấy sản phẩm." });
 
             return Ok(new { message = "Cập nhật thành công!" });
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin,Staff")]
         public async Task<IActionResult> Delete(int id)
         {
             var rows = await _productService.DeleteAsync(id);
-            return rows > 0 ? Ok(new { message = "Xóa thành công" }) : NotFound();
+            return rows > 0 ? Ok(new { message = "Xóa thành công" }) : NotFound(new { message = "Không tìm thấy sản phẩm." });
         }
 
         [HttpGet("search-elastic")]
@@ -58,6 +68,7 @@ namespace WebApplication1.Controllers
         }
 
         [HttpPost("sync-elastic")]
+        [Authorize(Roles = "Admin,Staff")]
         public async Task<IActionResult> SyncElastic()
         {
             await _productService.SyncProductsToElasticAsync();

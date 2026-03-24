@@ -1,7 +1,5 @@
 ﻿using Dapper;
-using Microsoft.AspNetCore.Mvc.RazorPages.Infrastructure;
 using Nest;
-using System;
 using System.Data;
 using WebApplication1.DTOs.product;
 using WebApplication1.Models;
@@ -13,10 +11,12 @@ namespace WebApplication1.services
     {
         private readonly IDbConnection _db;
         private readonly IElasticClient _elasticClient;
-        public ProductService(IDbConnection db, IElasticClient elasticClient)
+        private readonly string _elasticIndexName;
+        public ProductService(IDbConnection db, IElasticClient elasticClient, IConfiguration configuration)
         {
             _db = db;
             _elasticClient = elasticClient;
+            _elasticIndexName = configuration["Elasticsearch:DefaultIndex"] ?? "aroma_products";
         }
 
         public async Task<IEnumerable<ProductDTO>> GetAllAsync()
@@ -127,7 +127,7 @@ namespace WebApplication1.services
         public async Task<IEnumerable<ProductDTO>> SearchProductsElasticAsync(string keyword)
         {
             var response = await _elasticClient.SearchAsync<Product>(s => s
-                .Index("aroma_products")
+                .Index(_elasticIndexName)
                 .Query(q => q
                     .MultiMatch(m => m
                         .Fields(f => f
@@ -169,7 +169,7 @@ namespace WebApplication1.services
             try
             {
                 await _elasticClient.IndexAsync(product, i => i
-                    .Index("aroma_products")
+                    .Index(_elasticIndexName)
                     .Id(product.ProductId));
             }
             catch (Exception ex)
@@ -182,7 +182,7 @@ namespace WebApplication1.services
             try
             {
                 await _elasticClient.DeleteAsync<Product>(productId, d => d
-                    .Index("aroma_products"));
+                    .Index(_elasticIndexName));
             }
             catch (Exception ex)
             {

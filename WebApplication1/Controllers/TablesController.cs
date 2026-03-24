@@ -1,6 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using WebApplication1.DTOs.tablefood;
-using WebApplication1.services;
+using WebApplication1.Common;
 using WebApplication1.services.interfaces;
 
 namespace WebApplication1.Controllers
@@ -23,6 +24,7 @@ namespace WebApplication1.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Admin,Staff")]
         public async Task<IActionResult> Create([FromBody] TableCreateDTO tableDto)
         {
             await _tableService.AddAsync(tableDto);
@@ -30,29 +32,42 @@ namespace WebApplication1.Controllers
         }
 
         [HttpPatch("{id}/status")]
+        [Authorize(Roles = "Admin,Staff")]
         public async Task<IActionResult> UpdateStatus(int id, [FromBody] string status)
         {
-            await _tableService.UpdateStatusAsync(id, status);
+            if (string.IsNullOrWhiteSpace(status))
+                return BadRequest(new { message = "Trạng thái bàn không được để trống." });
+
+            var normalizedStatus = status.Trim();
+            if (!StatusConstants.TableStatuses.Contains(normalizedStatus))
+                return BadRequest(new { message = "Trạng thái bàn không hợp lệ." });
+
+            var rows = await _tableService.UpdateStatusAsync(id, normalizedStatus);
+            if (rows == 0)
+                return NotFound(new { message = "Không tìm thấy bàn." });
+
             return Ok(new { message = "Cập nhật trạng thái bàn thành công" });
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin,Staff")]
         public async Task<IActionResult> Delete(int id)
         {
-            await _tableService.DeleteAsync(id);
-            return Ok(new { message = "Đã xóa bàn" });
+            var rows = await _tableService.DeleteAsync(id);
+            return rows > 0 ? Ok(new { message = "Đã xóa bàn" }) : NotFound(new { message = "Không tìm thấy bàn." });
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin,Staff")]
         public async Task<IActionResult> Update(int id, [FromBody] TableDTO dto)
         {
             if (id != dto.TableId)
-                return BadRequest("Mã bàn không khớp!");
+                return BadRequest(new { message = "Mã bàn không khớp!" });
 
             var rows = await _tableService.UpdateAsync(id, dto);
 
             if (rows == 0)
-                return NotFound();
+                return NotFound(new { message = "Không tìm thấy bàn." });
 
             return Ok(new { message = "Cập nhật bàn thành công" });
         }
