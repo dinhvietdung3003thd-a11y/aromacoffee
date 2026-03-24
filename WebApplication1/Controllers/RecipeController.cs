@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using WebApplication1.DTOs.recipes;
 using WebApplication1.services.interfaces;
 namespace WebApplication1.Controllers
@@ -27,17 +28,19 @@ namespace WebApplication1.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Admin,Staff")]
         public async Task<IActionResult> Create([FromBody] RecipeCreateDTO dto)
         {
             var result = await _recipeService.AddAsync(dto);
-            return result > 0 ? Ok(new { message = "Thêm thành công" }) : BadRequest();
+            return result > 0 ? Ok(new { message = "Thêm thành công" }) : BadRequest(new { message = "Không thể thêm công thức." });
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin,Staff")]
         public async Task<IActionResult> Delete(int id)
         {
             var result = await _recipeService.DeleteAsync(id);
-            return result > 0 ? Ok(new { message = "Xóa thành công" }) : NotFound();
+            return result > 0 ? Ok(new { message = "Xóa thành công" }) : NotFound(new { message = "Không tìm thấy công thức." });
         }
 
         [HttpGet("{id}")]
@@ -48,10 +51,11 @@ namespace WebApplication1.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin,Staff")]
         public async Task<IActionResult> Update(int id, [FromBody] RecipeUpdateDTO dto)
         {
             var result = await _recipeService.UpdateAsync(id, dto);
-            return result > 0 ? Ok(new { message = "Cập nhật thành công" }) : NotFound();
+            return result > 0 ? Ok(new { message = "Cập nhật thành công" }) : NotFound(new { message = "Không tìm thấy công thức." });
         }
     }
 }
