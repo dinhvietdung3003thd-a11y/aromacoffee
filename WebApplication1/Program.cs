@@ -48,6 +48,14 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
+// --- 4. Cấu hình CORS ( danh rieng cho mobile đừng đụng vào) ---
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader());
+});
 // --- 4. Cấu hình Elasticsearch ---
 var esUri = builder.Configuration["Elasticsearch:Uri"] ?? "http://localhost:9200";
 var settings = new ConnectionSettings(new Uri(esUri))
@@ -97,6 +105,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseCors("AllowAll");
 
 app.UseHttpsRedirection();
 

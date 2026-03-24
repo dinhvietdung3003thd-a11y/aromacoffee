@@ -14,8 +14,8 @@ namespace WebApplication1.DTOs.account
         [Required]
         public string FullName { get; set; } = string.Empty;
 
-        [Required]
-        public string Role { get; set; } = "staff";
+        [RegularExpression("Admin|Staff", ErrorMessage = "Role không hợp lệ")]
+        public string Role { get; set; } = "Staff";
 
         [Phone(ErrorMessage = "Số điện thoại không hợp lệ")]
         public string? PhoneNumber { get; set; }
