@@ -36,7 +36,7 @@ namespace WebApplication1.Controllers
             return Ok(order);
         }
 
-        // 3. Tìm kiếm đơn hàng (theo trạng thái hoặc số bàn)
+        // 3. Tìm kiếm đơn hàng
         [HttpGet("search")]
         public async Task<IActionResult> Search([FromQuery] string q)
         {
