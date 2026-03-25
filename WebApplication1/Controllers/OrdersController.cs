@@ -86,9 +86,9 @@ namespace WebApplication1.Controllers
 
             try
             {
-                var rows = await _orderService.UpdateAsync(input);
-                return rows > 0
-                    ? Ok(new { message = "Cập nhật đơn hàng thành công" })
+                var result = await _orderService.UpdateAsync(input);
+                return result.Updated
+                    ? Ok(new { message = result.Message, warnings = result.Warnings })
                     : NotFound(new { message = "Không tìm thấy đơn hàng." });
             }
             catch (ArgumentException ex)
@@ -122,11 +122,11 @@ namespace WebApplication1.Controllers
 
             try
             {
-                var updated = await _orderService.UpdateStatusAsync(id, normalizedStatus);
-                if (!updated)
+                var result = await _orderService.UpdateStatusAsync(id, normalizedStatus);
+                if (!result.Updated)
                     return NotFound(new { message = "Không thể cập nhật trạng thái đơn hàng." });
 
-                return Ok(new { message = "Cập nhật trạng thái thành công" });
+                return Ok(new { message = result.Message, warnings = result.Warnings });
             }
             catch (ArgumentException ex)
             {

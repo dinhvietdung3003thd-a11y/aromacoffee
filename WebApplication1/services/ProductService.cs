@@ -164,6 +164,101 @@ namespace WebApplication1.services
                 await TryIndexProductAsync(product);
             }
         }
+
+        public async Task<IEnumerable<ProductIngredientAvailabilityDTO>> GetIngredientAvailabilityAsync(int? productId = null)
+        {
+            var products = (await _db.QueryAsync<ProductAvailabilityRow>(
+                @"SELECT p.product_id AS ProductId, p.name AS ProductName
+                  FROM products p
+                  WHERE (@ProductId IS NULL OR p.product_id = @ProductId)
+                  ORDER BY p.product_id ASC;",
+                new { ProductId = productId })).ToList();
+
+            if (products.Count == 0)
+                return Enumerable.Empty<ProductIngredientAvailabilityDTO>();
+
+            var productIds = products.Select(p => p.ProductId).ToArray();
+
+            var recipeRows = (await _db.QueryAsync<ProductRecipeAvailabilityRow>(
+                @"SELECT r.product_id AS ProductId,
+                         r.inventory_id AS InventoryId,
+                         r.quantity_needed AS QuantityNeeded,
+                         i.quantity_in_stock AS QuantityInStock
+                  FROM recipes r
+                  JOIN inventory i ON i.inventory_id = r.inventory_id
+                  WHERE r.product_id IN @ProductIds AND r.quantity_needed > 0;",
+                new { ProductIds = productIds })).ToList();
+
+            const int lowStockThreshold = 3;
+            var result = new List<ProductIngredientAvailabilityDTO>();
+
+            foreach (var product in products)
+            {
+                var productRecipes = recipeRows.Where(r => r.ProductId == product.ProductId).ToList();
+                result.Add(BuildAvailability(product.ProductId, product.ProductName, productRecipes, lowStockThreshold));
+            }
+
+            return result;
+        }
+
+        private static ProductIngredientAvailabilityDTO BuildAvailability(
+            int productId,
+            string productName,
+            List<ProductRecipeAvailabilityRow> recipes,
+            int lowStockThreshold)
+        {
+            if (recipes.Count == 0)
+            {
+                return new ProductIngredientAvailabilityDTO
+                {
+                    ProductId = productId,
+                    ProductName = productName,
+                    EstimatedServingsLeft = 0,
+                    Status = "not_tracked",
+                    WarningMessage = $"Product '{productName}' has no recipe configured."
+                };
+            }
+
+            int estimatedServings = recipes
+                .Select(r => (int)Math.Floor(r.QuantityInStock / r.QuantityNeeded))
+                .Min();
+
+            int displayServings = Math.Max(0, estimatedServings);
+
+            if (displayServings <= 0)
+            {
+                return new ProductIngredientAvailabilityDTO
+                {
+                    ProductId = productId,
+                    ProductName = productName,
+                    EstimatedServingsLeft = 0,
+                    Status = "out_of_ingredients",
+                    WarningMessage = $"Product '{productName}' is out of ingredients based on recorded stock."
+                };
+            }
+
+            if (displayServings <= lowStockThreshold)
+            {
+                return new ProductIngredientAvailabilityDTO
+                {
+                    ProductId = productId,
+                    ProductName = productName,
+                    EstimatedServingsLeft = displayServings,
+                    Status = "low_stock",
+                    WarningMessage = $"Product '{productName}' is running low on ingredients, only enough for about {displayServings} more servings."
+                };
+            }
+
+            return new ProductIngredientAvailabilityDTO
+            {
+                ProductId = productId,
+                ProductName = productName,
+                EstimatedServingsLeft = displayServings,
+                Status = "available",
+                WarningMessage = string.Empty
+            };
+        }
+
         private async Task TryIndexProductAsync(Product product)
         {
             try
@@ -188,6 +283,20 @@ namespace WebApplication1.services
             {
                 Console.WriteLine($"Elastic delete error for ProductId {productId}: {ex.Message}");
             }
+        }
+
+        private sealed class ProductAvailabilityRow
+        {
+            public int ProductId { get; set; }
+            public string ProductName { get; set; } = string.Empty;
+        }
+
+        private sealed class ProductRecipeAvailabilityRow
+        {
+            public int ProductId { get; set; }
+            public int InventoryId { get; set; }
+            public decimal QuantityNeeded { get; set; }
+            public decimal QuantityInStock { get; set; }
         }
     }
 }
