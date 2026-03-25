@@ -49,7 +49,7 @@ namespace WebApplication1.services
             return await _db.QueryFirstOrDefaultAsync<InventoryDisplayDTO>(sql, new { Id = id });
         }
 
-        public async Task<bool> CreateTransactionAsync(InventoryTransactionDTO dto)
+        public async Task<bool> CreateTransactionAsync(InventoryTransactionDTO dto, int userId)
         {
             if (dto == null)
                 throw new ArgumentException("Dữ liệu giao dịch kho không hợp lệ.");
@@ -137,7 +137,7 @@ namespace WebApplication1.services
                         TransactionType = transactionType,
                         dto.Quantity,
                         dto.Price,
-                        dto.UserId,
+                        UserId = userId,
                         dto.Note
                     },
                     transaction

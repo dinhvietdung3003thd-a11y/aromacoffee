@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using WebApplication1.DTOs.inventorys;
 using WebApplication1.services.interfaces;
 namespace WebApplication1.Controllers
@@ -18,9 +19,16 @@ namespace WebApplication1.Controllers
         [Authorize(Roles = "Admin,Staff")]
         public async Task<IActionResult> CreateTransaction([FromBody] InventoryTransactionDTO dto)
         {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim))
+                return Unauthorized(new { message = "Không lấy được userId từ token" });
+
+            if (!int.TryParse(userIdClaim, out int userId))
+                return Unauthorized(new { message = "Định danh người dùng trong token không hợp lệ." });
+
             try
             {
-                var result = await _inventoryService.CreateTransactionAsync(dto);
+                var result = await _inventoryService.CreateTransactionAsync(dto, userId);
                 if (result) return Ok(new { message = "Xử lý giao dịch kho thành công!" });
                 return BadRequest(new { message = "Không thể xử lý giao dịch kho." });
             }
@@ -36,9 +44,9 @@ namespace WebApplication1.Controllers
             {
                 return Conflict(new { message = ex.Message });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return StatusCode(500, new { message = "Lỗi hệ thống khi xử lý giao dịch kho.", detail = ex.Message });
+                return StatusCode(500, new { message = "Lỗi hệ thống khi xử lý giao dịch kho." });
             }
         }
         [HttpGet("report/summary")]
