@@ -103,9 +103,9 @@ namespace WebApplication1.Controllers
             {
                 return NotFound(new { message = ex.Message });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return StatusCode(500, new { message = "Lỗi khi cập nhật: " + ex.Message });
+                return StatusCode(500, new { message = "Lỗi khi cập nhật đơn hàng." });
             }
         }
 
@@ -136,9 +136,9 @@ namespace WebApplication1.Controllers
             {
                 return Conflict(new { message = ex.Message });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return StatusCode(500, new { message = "Lỗi khi cập nhật trạng thái đơn hàng.", detail = ex.Message });
+                return StatusCode(500, new { message = "Lỗi khi cập nhật trạng thái đơn hàng." });
             }
         }
 

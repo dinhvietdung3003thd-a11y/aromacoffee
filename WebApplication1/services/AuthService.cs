@@ -120,31 +120,68 @@ namespace WebApplication1.services
 
         public async Task<int> SetupFirstAdminAsync(SetupFirstAdminRequest request)
         {
-            var adminCount = await _db.ExecuteScalarAsync<int>(
-                "SELECT COUNT(*) FROM users WHERE role = 'Admin'");
+            const string lockName = "setup_first_admin_lock";
+            const int lockTimeoutSeconds = 10;
 
-            if (adminCount > 0)
-                return -1; // đã có admin đầu tiên
+            if (_db.State != ConnectionState.Open)
+                _db.Open();
 
-            var existingUser = await _db.QueryFirstOrDefaultAsync<Account>(
-                "SELECT * FROM users WHERE username = @u",
-                new { u = request.Username });
+            var lockResult = await _db.ExecuteScalarAsync<long?>(
+                "SELECT GET_LOCK(@name, @timeout);",
+                new { name = lockName, timeout = lockTimeoutSeconds });
 
-            if (existingUser != null)
-                return -2; // username đã tồn tại
+            if (lockResult != 1)
+                throw new InvalidOperationException("Không thể thiết lập admin đầu tiên vào lúc này.");
 
-            string hashedPassword = HashPassword(request.Password);
-
-            string sql = @"INSERT INTO users (username, password_hash, full_name, role, phone_number, is_active) 
-                           VALUES (@Username, @PasswordHash, @FullName, 'Admin', @PhoneNumber, 1)";
-
-            return await _db.ExecuteAsync(sql, new
+            using var transaction = _db.BeginTransaction();
+            try
             {
-                request.Username,
-                PasswordHash = hashedPassword,
-                request.FullName,
-                request.PhoneNumber
-            });
+                var adminCount = await _db.ExecuteScalarAsync<int>(
+                    "SELECT COUNT(*) FROM users WHERE role = 'Admin'",
+                    transaction: transaction);
+
+                if (adminCount > 0)
+                {
+                    transaction.Commit();
+                    return -1; // đã có admin đầu tiên
+                }
+
+                var existingUser = await _db.QueryFirstOrDefaultAsync<Account>(
+                    "SELECT * FROM users WHERE username = @u",
+                    new { u = request.Username },
+                    transaction);
+
+                if (existingUser != null)
+                {
+                    transaction.Commit();
+                    return -2; // username đã tồn tại
+                }
+
+                string hashedPassword = HashPassword(request.Password);
+
+                string sql = @"INSERT INTO users (username, password_hash, full_name, role, phone_number, is_active) 
+                               VALUES (@Username, @PasswordHash, @FullName, 'Admin', @PhoneNumber, 1)";
+
+                var result = await _db.ExecuteAsync(sql, new
+                {
+                    request.Username,
+                    PasswordHash = hashedPassword,
+                    request.FullName,
+                    request.PhoneNumber
+                }, transaction);
+
+                transaction.Commit();
+                return result;
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+            finally
+            {
+                await _db.ExecuteAsync("SELECT RELEASE_LOCK(@name);", new { name = lockName });
+            }
         }
 
         public async Task<int> RegisterAsync(RegisterRequest request)
