@@ -13,7 +13,7 @@ namespace WebApplication1.services.interfaces
         Task<IEnumerable<ProductDTO>> SearchAsync(string keyword);
         Task<IEnumerable<ProductDTO>> SearchProductsElasticAsync(string keyword);
         Task SyncProductsToElasticAsync();
+        Task<IEnumerable<ProductIngredientAvailabilityDTO>> GetIngredientAvailabilityAsync(int? productId = null);
     }
 }
-
 

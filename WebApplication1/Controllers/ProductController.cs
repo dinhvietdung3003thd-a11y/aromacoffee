@@ -81,5 +81,12 @@ namespace WebApplication1.Controllers
             var result = await _productService.SearchAsync(keyword);
             return Ok(result);
         }
+
+        [HttpGet("ingredient-availability")]
+        public async Task<IActionResult> GetIngredientAvailability([FromQuery] int? productId)
+        {
+            var result = await _productService.GetIngredientAvailabilityAsync(productId);
+            return Ok(result);
+        }
     }
 }

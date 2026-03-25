@@ -317,7 +317,7 @@ namespace WebApplication1.services
         // - Tính lại total từ DB price
         // - Nếu chuyển Completed/Cancelled thì giải phóng bàn (lấy table_id từ DB)
         // =========================
-        public async Task<int> UpdateAsync(OrderUpdateDTO dto)
+        public async Task<OrderUpdateResultDTO> UpdateAsync(OrderUpdateDTO dto)
         {
             if (_db.State != ConnectionState.Open) _db.Open();
 
@@ -338,7 +338,7 @@ namespace WebApplication1.services
             try
             {
                 var meta = await _db.QueryFirstOrDefaultAsync<dynamic>(
-                    "SELECT status, table_id, customer_id FROM orders WHERE order_id = @id",
+                    "SELECT status, table_id, customer_id, user_id FROM orders WHERE order_id = @id",
                     new { id = dto.OrderId },
                     transaction);
 
@@ -348,6 +348,7 @@ namespace WebApplication1.services
                 string oldStatus = (string)meta.status;
                 int? tableIdInDb = (int?)meta.table_id;
                 int? customerIdInDb = (int?)meta.customer_id;
+                int? orderUserId = (int?)meta.user_id;
 
                 // chặn sửa khi kết thúc
                 if (oldStatus == "Completed" || oldStatus == "Cancelled")
@@ -385,6 +386,7 @@ namespace WebApplication1.services
                 }
 
                 bool justCompleted = oldStatus != "Completed" && normalizedStatus == "Completed";
+                List<OrderCompletionWarningDTO> warnings = new();
 
                 // 1) Update thông tin chung (không ship)
                 const string updateOrderSql = @" UPDATE orders SET
@@ -466,6 +468,11 @@ namespace WebApplication1.services
                                 transaction);
                         }
                     }
+
+                    warnings = await AutoDeductInventoryAndBuildWarningsAsync(
+                        dto.OrderId,
+                        orderUserId,
+                        transaction);
                 }
 
                 // 6) Nếu completed/cancelled => trả bàn (lấy tableId từ DB)
@@ -483,7 +490,12 @@ namespace WebApplication1.services
                 }
 
                 transaction.Commit();
-                return 1;
+                return new OrderUpdateResultDTO
+                {
+                    Updated = true,
+                    Message = "Cập nhật đơn hàng thành công",
+                    Warnings = warnings
+                };
             }
             catch
             {
@@ -492,7 +504,7 @@ namespace WebApplication1.services
             }
         }
 
-        public async Task<bool> UpdateStatusAsync(int id, string status)
+        public async Task<OrderUpdateResultDTO> UpdateStatusAsync(int id, string status)
         {
             if (string.IsNullOrWhiteSpace(status))
                 throw new ArgumentException("Trạng thái đơn hàng không được để trống.");
@@ -501,34 +513,267 @@ namespace WebApplication1.services
             if (!StatusConstants.OrderStatuses.Contains(normalizedStatus))
                 throw new ArgumentException("Trạng thái đơn hàng không hợp lệ.");
 
-            const string getSql = "SELECT * FROM orders WHERE order_id = @id";
+            if (_db.State != ConnectionState.Open)
+                _db.Open();
 
-            var order = await _db.QueryFirstOrDefaultAsync<Order>(getSql, new { id });
-
-            if (order == null)
-                return false;
-
-            // Không cho sửa nếu đã kết thúc
-            if (order.Status == "Completed" || order.Status == "Cancelled")
-                return false;
-
-            const string updateSql = @"UPDATE orders 
-                               SET status = @status 
-                               WHERE order_id = @id";
-
-            await _db.ExecuteAsync(updateSql, new { id, status = normalizedStatus });
-
-            // Nếu order kết thúc -> trả bàn
-            if (normalizedStatus == "Completed" || normalizedStatus == "Cancelled")
+            using var transaction = _db.BeginTransaction();
+            try
             {
-                const string freeTable = @"UPDATE tables 
-                                   SET status = 'Available' 
-                                   WHERE table_id = @tableId";
+                var order = await _db.QueryFirstOrDefaultAsync<OrderStatusMetaRow>(
+                    @"SELECT order_id AS OrderId, status AS Status, table_id AS TableId, user_id AS UserId
+                      FROM orders
+                      WHERE order_id = @Id;",
+                    new { Id = id },
+                    transaction);
 
-                await _db.ExecuteAsync(freeTable, new { tableId = order.TableId });
+                if (order == null)
+                {
+                    transaction.Rollback();
+                    return new OrderUpdateResultDTO { Updated = false, Message = "Không thể cập nhật trạng thái đơn hàng." };
+                }
+
+                // Không cho sửa nếu đã kết thúc
+                if (order.Status == "Completed" || order.Status == "Cancelled")
+                {
+                    transaction.Rollback();
+                    return new OrderUpdateResultDTO { Updated = false, Message = "Không thể cập nhật trạng thái đơn hàng." };
+                }
+
+                bool justCompleted = order.Status != "Completed" && normalizedStatus == "Completed";
+
+                await _db.ExecuteAsync(
+                    @"UPDATE orders
+                      SET status = @Status
+                      WHERE order_id = @Id;",
+                    new { Id = id, Status = normalizedStatus },
+                    transaction);
+
+                // Nếu order kết thúc -> trả bàn
+                if (normalizedStatus == "Completed" || normalizedStatus == "Cancelled")
+                {
+                    if (order.TableId.HasValue)
+                    {
+                        await _db.ExecuteAsync(
+                            @"UPDATE tables
+                              SET status = 'Available'
+                              WHERE table_id = @TableId;",
+                            new { TableId = order.TableId.Value },
+                            transaction);
+                    }
+                }
+
+                List<OrderCompletionWarningDTO> warnings = new();
+                if (justCompleted)
+                {
+                    warnings = await AutoDeductInventoryAndBuildWarningsAsync(
+                        id,
+                        order.UserId,
+                        transaction);
+                }
+
+                transaction.Commit();
+
+                return new OrderUpdateResultDTO
+                {
+                    Updated = true,
+                    Message = "Cập nhật trạng thái thành công",
+                    Warnings = warnings
+                };
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+        }
+
+        private async Task<List<OrderCompletionWarningDTO>> AutoDeductInventoryAndBuildWarningsAsync(
+            int orderId,
+            int? orderUserId,
+            IDbTransaction transaction)
+        {
+            const int lowStockThreshold = 3;
+
+            var orderedProducts = (await _db.QueryAsync<OrderProductRow>(
+                @"SELECT od.product_id AS ProductId,
+                         p.name AS ProductName,
+                         SUM(od.quantity) AS OrderedQuantity
+                  FROM order_details od
+                  JOIN products p ON p.product_id = od.product_id
+                  WHERE od.order_id = @OrderId
+                  GROUP BY od.product_id, p.name;",
+                new { OrderId = orderId },
+                transaction)).ToList();
+
+            if (orderedProducts.Count == 0)
+                return new List<OrderCompletionWarningDTO>();
+
+            var productIds = orderedProducts.Select(x => x.ProductId).ToArray();
+            var recipeRows = (await _db.QueryAsync<RecipeInventoryRow>(
+                @"SELECT r.product_id AS ProductId,
+                         r.inventory_id AS InventoryId,
+                         r.quantity_needed AS QuantityNeeded,
+                         i.quantity_in_stock AS QuantityInStock
+                  FROM recipes r
+                  JOIN inventory i ON i.inventory_id = r.inventory_id
+                  WHERE r.product_id IN @ProductIds
+                    AND r.quantity_needed > 0;",
+                new { ProductIds = productIds },
+                transaction)).ToList();
+
+            var deductionByInventoryId = new Dictionary<int, decimal>();
+
+            foreach (var orderedProduct in orderedProducts)
+            {
+                var productRecipes = recipeRows.Where(x => x.ProductId == orderedProduct.ProductId).ToList();
+                if (productRecipes.Count == 0)
+                    continue;
+
+                foreach (var recipe in productRecipes)
+                {
+                    var deductedQuantity = orderedProduct.OrderedQuantity * recipe.QuantityNeeded;
+                    if (deductedQuantity <= 0)
+                        continue;
+
+                    if (deductionByInventoryId.ContainsKey(recipe.InventoryId))
+                    {
+                        deductionByInventoryId[recipe.InventoryId] += deductedQuantity;
+                    }
+                    else
+                    {
+                        deductionByInventoryId[recipe.InventoryId] = deductedQuantity;
+                    }
+                }
             }
 
-            return true;
+            foreach (var deduction in deductionByInventoryId)
+            {
+                await _db.ExecuteAsync(
+                    @"UPDATE inventory
+                      SET quantity_in_stock = quantity_in_stock - @Quantity
+                      WHERE inventory_id = @InventoryId;",
+                    new
+                    {
+                        InventoryId = deduction.Key,
+                        Quantity = deduction.Value
+                    },
+                    transaction);
+
+                await _db.ExecuteAsync(
+                    @"INSERT INTO inventory_transactions
+                      (inventory_id, transaction_type, quantity, price, user_id, note)
+                      VALUES
+                      (@InventoryId, 'Export', @Quantity, 0, @UserId, @Note);",
+                    new
+                    {
+                        InventoryId = deduction.Key,
+                        Quantity = deduction.Value,
+                        UserId = orderUserId,
+                        Note = $"Auto deduct from completed order #{orderId}"
+                    },
+                    transaction);
+            }
+
+            var updatedRecipeRows = (await _db.QueryAsync<RecipeInventoryRow>(
+                @"SELECT r.product_id AS ProductId,
+                         r.inventory_id AS InventoryId,
+                         r.quantity_needed AS QuantityNeeded,
+                         i.quantity_in_stock AS QuantityInStock
+                  FROM recipes r
+                  JOIN inventory i ON i.inventory_id = r.inventory_id
+                  WHERE r.product_id IN @ProductIds
+                    AND r.quantity_needed > 0;",
+                new { ProductIds = productIds },
+                transaction)).ToList();
+
+            var warnings = new List<OrderCompletionWarningDTO>();
+            foreach (var orderedProduct in orderedProducts)
+            {
+                var productRecipes = updatedRecipeRows.Where(r => r.ProductId == orderedProduct.ProductId).ToList();
+                warnings.Add(BuildWarning(orderedProduct.ProductId, orderedProduct.ProductName, productRecipes, lowStockThreshold));
+            }
+
+            return warnings;
+        }
+
+        private static OrderCompletionWarningDTO BuildWarning(
+            int productId,
+            string productName,
+            List<RecipeInventoryRow> recipeRows,
+            int lowStockThreshold)
+        {
+            if (recipeRows.Count == 0)
+            {
+                return new OrderCompletionWarningDTO
+                {
+                    ProductId = productId,
+                    ProductName = productName,
+                    EstimatedServingsLeft = 0,
+                    Status = "not_tracked",
+                    WarningMessage = $"Product '{productName}' has no recipe configured."
+                };
+            }
+
+            int estimatedServings = recipeRows
+                .Select(r => (int)Math.Floor(r.QuantityInStock / r.QuantityNeeded))
+                .Min();
+            int displayServings = Math.Max(0, estimatedServings);
+
+            if (displayServings <= 0)
+            {
+                return new OrderCompletionWarningDTO
+                {
+                    ProductId = productId,
+                    ProductName = productName,
+                    EstimatedServingsLeft = 0,
+                    Status = "out_of_ingredients",
+                    WarningMessage = $"Product '{productName}' is out of ingredients based on recorded stock."
+                };
+            }
+
+            if (displayServings <= lowStockThreshold)
+            {
+                return new OrderCompletionWarningDTO
+                {
+                    ProductId = productId,
+                    ProductName = productName,
+                    EstimatedServingsLeft = displayServings,
+                    Status = "low_stock",
+                    WarningMessage = $"Product '{productName}' is running low on ingredients, only enough for about {displayServings} more servings."
+                };
+            }
+
+            return new OrderCompletionWarningDTO
+            {
+                ProductId = productId,
+                ProductName = productName,
+                EstimatedServingsLeft = displayServings,
+                Status = "available",
+                WarningMessage = string.Empty
+            };
+        }
+
+        private sealed class OrderStatusMetaRow
+        {
+            public int OrderId { get; set; }
+            public string Status { get; set; } = string.Empty;
+            public int? TableId { get; set; }
+            public int? UserId { get; set; }
+        }
+
+        private sealed class OrderProductRow
+        {
+            public int ProductId { get; set; }
+            public string ProductName { get; set; } = string.Empty;
+            public decimal OrderedQuantity { get; set; }
+        }
+
+        private sealed class RecipeInventoryRow
+        {
+            public int ProductId { get; set; }
+            public int InventoryId { get; set; }
+            public decimal QuantityNeeded { get; set; }
+            public decimal QuantityInStock { get; set; }
         }
 
         // =========================
