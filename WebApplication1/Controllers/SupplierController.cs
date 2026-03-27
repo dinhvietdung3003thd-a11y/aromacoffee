@@ -6,6 +6,7 @@ namespace WebApplication1.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Roles = "Admin,Staff")]
     public class SupplierController : ControllerBase
     {
         private readonly ISupplierService _supplierService;
@@ -34,7 +35,6 @@ namespace WebApplication1.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Admin,Staff")]
         public async Task<IActionResult> Create([FromBody] SupplierDTO dto)
         {
             var result = await _supplierService.AddAsync(dto);
@@ -44,7 +44,6 @@ namespace WebApplication1.Controllers
         }
 
         [HttpPut("{id}")]
-        [Authorize(Roles = "Admin,Staff")]
         public async Task<IActionResult> Update(int id, [FromBody] SupplierDTO dto)
         {
             var result = await _supplierService.UpdateAsync(id, dto);
@@ -54,7 +53,6 @@ namespace WebApplication1.Controllers
         }
 
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin,Staff")]
         public async Task<IActionResult> Delete(int id)
         {
             var result = await _supplierService.DeleteAsync(id);

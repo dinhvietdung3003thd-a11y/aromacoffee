@@ -8,6 +8,7 @@ namespace WebApplication1.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Roles = "Admin,Staff")]
     public class TablesController : ControllerBase
     {
         private readonly ITableService _tableService;
@@ -24,7 +25,6 @@ namespace WebApplication1.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Admin,Staff")]
         public async Task<IActionResult> Create([FromBody] TableCreateDTO tableDto)
         {
             await _tableService.AddAsync(tableDto);
@@ -32,7 +32,6 @@ namespace WebApplication1.Controllers
         }
 
         [HttpPatch("{id}/status")]
-        [Authorize(Roles = "Admin,Staff")]
         public async Task<IActionResult> UpdateStatus(int id, [FromBody] string status)
         {
             if (string.IsNullOrWhiteSpace(status))
@@ -50,7 +49,6 @@ namespace WebApplication1.Controllers
         }
 
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin,Staff")]
         public async Task<IActionResult> Delete(int id)
         {
             var rows = await _tableService.DeleteAsync(id);
@@ -58,7 +56,6 @@ namespace WebApplication1.Controllers
         }
 
         [HttpPut("{id}")]
-        [Authorize(Roles = "Admin,Staff")]
         public async Task<IActionResult> Update(int id, [FromBody] TableDTO dto)
         {
             if (id != dto.TableId)

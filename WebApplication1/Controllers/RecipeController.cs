@@ -6,6 +6,7 @@ namespace WebApplication1.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Roles = "Admin,Staff")]
     public class RecipeController : ControllerBase
     {
         private readonly IRecipeService _recipeService;
@@ -28,7 +29,6 @@ namespace WebApplication1.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Admin,Staff")]
         public async Task<IActionResult> Create([FromBody] RecipeCreateDTO dto)
         {
             var result = await _recipeService.AddAsync(dto);
@@ -36,7 +36,6 @@ namespace WebApplication1.Controllers
         }
 
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin,Staff")]
         public async Task<IActionResult> Delete(int id)
         {
             var result = await _recipeService.DeleteAsync(id);
@@ -51,7 +50,6 @@ namespace WebApplication1.Controllers
         }
 
         [HttpPut("{id}")]
-        [Authorize(Roles = "Admin,Staff")]
         public async Task<IActionResult> Update(int id, [FromBody] RecipeUpdateDTO dto)
         {
             var result = await _recipeService.UpdateAsync(id, dto);

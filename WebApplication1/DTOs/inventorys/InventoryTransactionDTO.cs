@@ -14,9 +14,6 @@ namespace WebApplication1.DTOs.inventorys
         [Range(0.0001, double.MaxValue, ErrorMessage = "Quantity phải > 0")]
         public decimal Quantity { get; set; }
 
-        // sau này thêm authorize thì bỏ khỏi body và lấy từ token
-        public int UserId { get; set; }
-
         [StringLength(500, ErrorMessage = "Note tối đa 500 ký tự")]
         public string? Note { get; set; }
 

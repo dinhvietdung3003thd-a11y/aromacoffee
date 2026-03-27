@@ -7,6 +7,7 @@ namespace WebApplication1.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Roles = "Admin,Staff")]
     public class CategoriesController : ControllerBase
     {
         private readonly ICategoryService _categoryService;
@@ -36,7 +37,6 @@ namespace WebApplication1.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Admin,Staff")]
         public async Task<IActionResult> Create([FromBody] CategoryCreateDTO dto)
         {
             if (dto == null)
@@ -51,7 +51,6 @@ namespace WebApplication1.Controllers
             });
         }
         [HttpPut("{id}")]
-        [Authorize(Roles = "Admin,Staff")]
         public async Task<IActionResult> Update(int id, [FromBody] CategoryDTO dto)
         {
             var result = await _categoryService.UpdateAsync(id, dto);
@@ -61,7 +60,6 @@ namespace WebApplication1.Controllers
         }
 
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin,Staff")]
         public async Task<IActionResult> Delete(int id)
         {
             var rows = await _categoryService.DeleteAsync(id);

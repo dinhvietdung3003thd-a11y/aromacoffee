@@ -7,6 +7,7 @@ namespace WebApplication1.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Roles = "Admin,Staff")]
     public class InventoryController : ControllerBase
     {
         private readonly IInventoryService _inventoryService;
@@ -16,7 +17,6 @@ namespace WebApplication1.Controllers
         public async Task<IActionResult> GetAll() => Ok(await _inventoryService.GetAllAsync());
 
         [HttpPost("transaction")]
-        [Authorize(Roles = "Admin,Staff")]
         public async Task<IActionResult> CreateTransaction([FromBody] InventoryTransactionDTO dto)
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -63,7 +63,6 @@ namespace WebApplication1.Controllers
             return Ok(report);
         }
         [HttpPost]
-        [Authorize(Roles = "Admin,Staff")]
         public async Task<IActionResult> Create([FromBody] InventoryCreateDTO dto)
         {
             try

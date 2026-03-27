@@ -7,6 +7,7 @@ namespace WebApplication1.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Roles = "Admin,Staff")]
     public class ProductController : ControllerBase
     {
         private readonly IProductService _productService;
@@ -23,7 +24,6 @@ namespace WebApplication1.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Admin,Staff")]
         public async Task<IActionResult> Create(ProductCreateDTO input)
         {
             try
@@ -38,7 +38,6 @@ namespace WebApplication1.Controllers
         }
 
         [HttpPut("{id}")]
-        [Authorize(Roles = "Admin,Staff")]
         public async Task<IActionResult> Update(int id, ProductUpdateDTO input)
         {
             if (id != input.ProductId)
@@ -53,7 +52,6 @@ namespace WebApplication1.Controllers
         }
 
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin,Staff")]
         public async Task<IActionResult> Delete(int id)
         {
             var rows = await _productService.DeleteAsync(id);
@@ -68,7 +66,6 @@ namespace WebApplication1.Controllers
         }
 
         [HttpPost("sync-elastic")]
-        [Authorize(Roles = "Admin,Staff")]
         public async Task<IActionResult> SyncElastic()
         {
             await _productService.SyncProductsToElasticAsync();
