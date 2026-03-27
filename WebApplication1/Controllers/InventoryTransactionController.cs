@@ -1,9 +1,11 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using WebApplication1.services.interfaces;
+using Microsoft.AspNetCore.Authorization;
 namespace WebApplication1.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Roles = "Admin,Staff")]
     public class InventoryTransactionController : ControllerBase
     {
         private readonly IInventoryTransactionService _service;
