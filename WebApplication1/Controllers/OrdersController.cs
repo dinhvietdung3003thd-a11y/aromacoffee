@@ -38,7 +38,7 @@ namespace WebApplication1.Controllers
 
         // 3. Tìm kiếm đơn hàng
         [HttpGet("search")]
-        public async Task<IActionResult> Search([FromQuery] string q)
+        public async Task<IActionResult> Search([FromQuery] string q)   
         {
             var results = await _orderService.SearchAsync(q);
             return Ok(results);

@@ -36,7 +36,6 @@ namespace WebApplication1.services
                                          o.table_id AS TableId,
                                          o.user_id AS UserId,
                                          o.customer_id AS CustomerId,
-                                         o.note AS Note,
                                          u.full_name AS CreatorFullName
                                    FROM orders o
                                    LEFT JOIN users u ON o.user_id = u.user_id
@@ -57,7 +56,6 @@ namespace WebApplication1.services
                                               o.table_id AS TableId,
                                               o.user_id AS UserId,
                                               o.customer_id AS CustomerId,
-                                              o.note AS Note,
                                               u.full_name AS CreatorFullName
                                        FROM orders o
                                        LEFT JOIN users u ON o.user_id = u.user_id
@@ -145,9 +143,9 @@ namespace WebApplication1.services
                 // 2. Insert order trước
                 const string insertOrderSql = @"
             INSERT INTO orders
-            (created_at, total_amount, user_id, table_id, status, customer_id, note)
+            (created_at, total_amount, user_id, table_id, status, customer_id)
             VALUES
-            (@OrderDate, 0, @UserId, @TableId, @Status, @CustomerId, @Note);
+            (@OrderDate, 0, @UserId, @TableId, @Status, @CustomerId);
 
             SELECT LAST_INSERT_ID();
         ";
@@ -391,7 +389,6 @@ namespace WebApplication1.services
                 // 1) Update thông tin chung (không ship)
                 const string updateOrderSql = @" UPDATE orders SET
                                                         status = @Status,
-                                                        note = @Note,
                                                         table_id = @TableId,
                                                         customer_id = @CustomerId
                                                     WHERE order_id = @OrderId;";
@@ -884,6 +881,28 @@ namespace WebApplication1.services
             string sql = @"SELECT o.order_id AS Id, o.created_at AS OrderDate, o.total_amount, o.status, o.table_id 
                            FROM orders o WHERE o.table_id = @tableId";
             return await _db.QueryAsync<OrderDisplayDTO>(sql, new { tableId });
+        }
+
+        public async Task<IEnumerable<OrderDisplayDTO>> GetOrdersByCustomerIdAsync(int customerId)
+        {
+            const string sql = @"
+        SELECT 
+            o.order_id AS Id,
+            o.created_at AS OrderDate,
+            o.total_amount AS TotalAmount,
+            o.status AS Status,
+            o.table_id AS TableId,
+            o.user_id AS UserId,
+            o.customer_id AS CustomerId,
+            o.note AS Note,
+            u.full_name AS CreatorFullName
+        FROM orders o
+        LEFT JOIN users u ON o.user_id = u.user_id
+        WHERE o.customer_id = @CustomerId
+        ORDER BY o.created_at DESC;
+    ";
+
+            return await _db.QueryAsync<OrderDisplayDTO>(sql, new { CustomerId = customerId });
         }
     }
 }

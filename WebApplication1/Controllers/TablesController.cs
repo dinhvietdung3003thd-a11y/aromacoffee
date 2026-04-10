@@ -61,6 +61,15 @@ namespace WebApplication1.Controllers
             if (id != dto.TableId)
                 return BadRequest(new { message = "Mã bàn không khớp!" });
 
+            if (string.IsNullOrWhiteSpace(dto.Status))
+                return BadRequest(new { message = "Trạng thái bàn không được để trống." });
+
+            var normalizedStatus = dto.Status.Trim();
+            if (!StatusConstants.TableStatuses.Contains(normalizedStatus))
+                return BadRequest(new { message = "Trạng thái bàn không hợp lệ." });
+
+            dto.Status = normalizedStatus;
+
             var rows = await _tableService.UpdateAsync(id, dto);
 
             if (rows == 0)

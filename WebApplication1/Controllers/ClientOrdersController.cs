@@ -18,6 +18,25 @@ namespace WebApplication1.Controllers
             _orderService = orderService;
         }
 
+        [HttpGet]
+        public async Task<IActionResult> GetMyOrders()
+        {
+            var customerIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrWhiteSpace(customerIdClaim))
+            {
+                return Unauthorized(new { message = "Không xác định được khách hàng." });
+            }
+
+            if (!int.TryParse(customerIdClaim, out int customerId))
+            {
+                return Unauthorized(new { message = "ID khách hàng không hợp lệ." });
+            }
+
+            var orders = await _orderService.GetOrdersByCustomerIdAsync(customerId);
+            return Ok(orders);
+        }
+            
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CustomerCreateOrderDTO input)
         {
