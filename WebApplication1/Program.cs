@@ -112,6 +112,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseStaticFiles();
+
 app.UseCors("FrontendCors");
 
 app.UseHttpsRedirection();

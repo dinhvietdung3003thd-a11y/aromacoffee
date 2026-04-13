@@ -4,27 +4,56 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Aroma Cafe - Admin Dashboard</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
             --bg: #f6efe7;
             --surface: #fff;
-            --accent: #b25d57;
+            --accent: #b25d57; /* Original beautiful color */
             --accent-dark: #8f3f3a;
             --text: #2b2b2b;
             --muted: #6f5f5a;
             --shadow: 0 20px 50px rgba(0, 0, 0, 0.08);
+            --highlight: #ff8c42; /* Cafe orange for active */
+            --text-light: #ffffff;
+            --text-muted: #a0a0a0;
         }
         * { box-sizing: border-box; }
-        body { margin: 0; min-height: 100vh; font-family: 'Poppins', system-ui, sans-serif; background: linear-gradient(135deg, #fff 0%, #f2e6dd 100%); color: var(--text); }
+        body { margin: 0; min-height: 100vh; font-family: 'Inter', system-ui, sans-serif; background: linear-gradient(135deg, #fff 0%, #f2e6dd 100%); color: var(--text); }
         .page { display: flex; justify-content: center; padding: 40px 24px; }
         .card { width: min(1080px, 100%); background: var(--surface); border-radius: 30px; box-shadow: var(--shadow); overflow: hidden; display: grid; grid-template-columns: 320px 1fr; }
-        .sidebar { background: var(--accent); color: #fff; padding: 36px 28px; display: flex; flex-direction: column; justify-content: space-between; }
+        .sidebar { background: var(--accent); color: var(--text-light); padding: 36px 28px; display: flex; flex-direction: column; justify-content: space-between; }
+        .profile { display: flex; flex-direction: column; align-items: center; gap: 14px; padding-bottom: 28px; border-bottom: 1px solid rgba(255,255,255,0.2); cursor: pointer; transition: opacity .2s ease; }
+        .profile:hover { opacity: 0.9; }
+        .profile-avatar { width: 80px; height: 80px; border-radius: 50%; background: rgba(255,255,255,0.3); display: flex; align-items: center; justify-content: center; font-size: 36px; font-weight: 700; }
+        .profile-name { margin: 0; font-size: 1.1rem; font-weight: 700; text-align: center; }
+        .profile-role { margin: 0; font-size: 0.9rem; color: rgba(255,255,255,0.8); text-align: center; text-transform: capitalize; }
         .sidebar h1 { margin: 0 0 14px; font-size: 2rem; letter-spacing: 0.6px; }
         .sidebar p { margin: 0; color: rgba(255,255,255,0.9); line-height: 1.7; }
-        .menu { margin-top: 32px; display: grid; gap: 14px; }
-        .menu a { color: #fff; text-decoration: none; background: rgba(255,255,255,0.12); padding: 14px 18px; border-radius: 18px; transition: background .2s ease; }
-        .menu a:hover { background: rgba(255,255,255,0.2); }
+        .menu { margin-top: 32px; display: grid; gap: 0; }
+        .menu-section { margin-bottom: 20px; }
+        .menu-header { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text-muted); margin-bottom: 12px; font-weight: 700; }
+        .menu-item { color: var(--text-light); text-decoration: none; background: rgba(255,255,255,0.12); padding: 12px 16px; border-radius: 8px; transition: background .2s ease; display: flex; align-items: center; cursor: pointer; font-size: 0.95rem; position: relative; margin-bottom: 4px; }
+        .menu-item:hover { background: rgba(255,255,255,0.2); }
+        .menu-item.active { background: rgba(255,255,255,0.25); border-left: 4px solid var(--highlight); }
+        .menu-item i { margin-right: 12px; width: 16px; text-align: center; }
+        .menu-item span { flex: 1; }
+        .menu-item .icon { font-size: 0.8rem; transition: transform .2s ease; margin-left: auto; }
+        .menu-item.parent:hover .icon { transform: rotate(90deg); }
+        .submenu { display: none; padding-left: 20px; margin-top: 4px; }
+        .submenu a { color: var(--text-light); text-decoration: none; padding: 8px 16px; border-radius: 6px; transition: background .2s ease; display: block; margin-bottom: 2px; }
+        .submenu a:hover { background: rgba(255,255,255,0.15); }
+        .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+        .modal.active { display: flex; }
+        .modal-content { background: #fff; border-radius: 20px; padding: 32px; max-width: 400px; width: 90%; box-shadow: 0 30px 60px rgba(0,0,0,0.25); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+        .modal-header h2 { margin: 0; }
+        .modal-close { background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text); }
+        .modal-body { display: grid; gap: 16px; }
+        .modal-field { display: grid; gap: 6px; }
+        .modal-field label { font-size: 0.9rem; color: var(--muted); font-weight: 600; }
+        .modal-field p { margin: 0; }
         .content { padding: 40px 48px; }
         .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
         .topbar h2 { margin: 0; font-size: 1.75rem; }
@@ -55,15 +84,74 @@
         <section class="card">
             <aside class="sidebar">
                 <div>
-                    <h1>Admin</h1>
-                    <p>Quản lý toàn bộ Aroma Cafe: nhân viên, sản phẩm, báo cáo và đơn hàng.</p>
+                    <div class="profile" id="profileTrigger">
+                        <div class="profile-avatar" id="profileAvatar">A</div>
+                        <p class="profile-name" id="profileName">Loading...</p>
+                        <p class="profile-role" id="profileRole">user</p>
+                    </div>
                 </div>
                 <nav class="menu">
-                    <a href="#">Tổng quan</a>
-                    <a href="#">Quản lý nhân viên</a>
-                    <a href="#">Quản lý sản phẩm</a>
-                    <a href="#">Báo cáo</a>
-                    <a href="#">Cài đặt</a>
+                    <!-- MAIN -->
+                    <div class="menu-section">
+                        <div class="menu-header">MAIN</div>
+                        <a href="#" class="menu-item active">
+                            <i class="fas fa-th-large"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </div>
+
+                    <!-- MANAGEMENT -->
+                    <div class="menu-section">
+                        <div class="menu-header">MANAGEMENT</div>
+                        
+                        <div class="menu-item parent" onclick="toggleSubmenu(this)">
+                            <i class="fas fa-shopping-cart"></i>
+                            <span>Commerce</span>
+                            <span class="icon">›</span>
+                            <div class="submenu">
+                                <a href="#">Orders</a>
+                                <a href="#">Sales</a>
+                            </div>
+                        </div>
+
+                        <div class="menu-item parent" onclick="toggleSubmenu(this)">
+                            <i class="fas fa-book"></i>
+                            <span>Catalog</span>
+                            <span class="icon">›</span>
+                            <div class="submenu">
+                                <a href="#">Products</a>
+                                <a href="#">Categories</a>
+                                <a href="#">Recipes</a>
+                            </div>
+                        </div>
+
+                        <div class="menu-item parent" onclick="toggleSubmenu(this)">
+                            <i class="fas fa-box"></i>
+                            <span>Logistics</span>
+                            <span class="icon">›</span>
+                            <div class="submenu">
+                                <a href="#">Inventory</a>
+                                <a href="#">Suppliers</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SYSTEM -->
+                    <div class="menu-section">
+                        <div class="menu-header">SYSTEM</div>
+                        <a href="#" class="menu-item">
+                            <i class="fas fa-users"></i>
+                            <span>HRM (Employee)</span>
+                        </a>
+                        <a href="#" class="menu-item">
+                            <i class="fas fa-cog"></i>
+                            <span>Settings</span>
+                        </a>
+                        <a href="#" class="menu-item" onclick="logout()" style="background: rgba(255,255,255,0.15); margin-top: 8px;">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Sign out</span>
+                        </a>
+                    </div>
                 </nav>
             </aside>
 
@@ -73,7 +161,6 @@
                         <h2>Trang chủ Admin</h2>
                         <p>Chào mừng Admin, bạn có thể quản lý hệ thống ở đây.</p>
                     </div>
-                    <button class="logout" onclick="location.href='login.html'">Đăng xuất</button>
                 </div>
 
                 <div class="summary">
@@ -109,5 +196,111 @@
             </div>
         </section>
     </main>
+
+    <!-- Modal Thông tin tài khoản -->
+    <div class="modal" id="accountModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Thông tin tài khoản</h2>
+                <button class="modal-close" onclick="closeAccountModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-field">
+                    <label>Tên người dùng</label>
+                    <p id="modalUsername">-</p>
+                </div>
+                <div class="modal-field">
+                    <label>Tên đầy đủ</label>
+                    <p id="modalFullName">-</p>
+                </div>
+                <div class="modal-field">
+                    <label>Quyền hạn</label>
+                    <p id="modalRole">-</p>
+                </div>
+                <div class="modal-field">
+                    <label>Số điện thoại</label>
+                    <p id="modalPhoneNumber">-</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Lấy user info từ localStorage khi load trang
+        window.addEventListener('DOMContentLoaded', () => {
+            loadUserProfile();
+        });
+
+        function loadUserProfile() {
+            const userJson = localStorage.getItem('user');
+            if (!userJson) {
+                // Nếu không có user, redirect về login
+                window.location.href = 'login.html';
+                return;
+            }
+
+            const user = JSON.parse(userJson);
+            const fullName = user.user?.fullName || user.user?.FullName || 'User';
+            const role = user.user?.role || user.user?.Role || 'user';
+            const username = user.user?.username || user.user?.Username || 'Unknown';
+            const phoneNumber = user.user?.phoneNumber || user.user?.PhoneNumber || '-';
+
+            // Set profile avatar - lấy chữ cái đầu
+            const avatar = fullName.charAt(0).toUpperCase();
+            document.getElementById('profileAvatar').textContent = avatar;
+
+            // Set profile name
+            document.getElementById('profileName').textContent = fullName;
+
+            // Set profile role
+            document.getElementById('profileRole').textContent = role || 'user';
+
+            // Lưu lại để dùng khi click vào profile
+            window.currentUser = { fullName, role, username, phoneNumber };
+        }
+
+        function openAccountModal() {
+            if (!window.currentUser) return;
+            
+            document.getElementById('modalUsername').textContent = window.currentUser.username;
+            document.getElementById('modalFullName').textContent = window.currentUser.fullName;
+            document.getElementById('modalRole').textContent = window.currentUser.role;
+            document.getElementById('modalPhoneNumber').textContent = window.currentUser.phoneNumber;
+            
+            document.getElementById('accountModal').classList.add('active');
+        }
+
+        function closeAccountModal() {
+            document.getElementById('accountModal').classList.remove('active');
+        }
+
+        function toggleSubmenu(element) {
+            const submenu = element.querySelector('.submenu');
+            const icon = element.querySelector('.icon');
+            if (submenu.style.display === 'block') {
+                submenu.style.display = 'none';
+                icon.style.transform = 'rotate(0deg)';
+            } else {
+                submenu.style.display = 'block';
+                icon.style.transform = 'rotate(90deg)';
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = 'login.html';
+        }
+
+        // Click để mở modal thông tin tài khoản
+        document.getElementById('profileTrigger').addEventListener('click', openAccountModal);
+
+        // Click vào modal background để đóng
+        document.getElementById('accountModal').addEventListener('click', (e) => {
+            if (e.target.id === 'accountModal') {
+                closeAccountModal();
+            }
+        });
+    </script>
 </body>
 </html>
