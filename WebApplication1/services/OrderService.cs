@@ -18,6 +18,45 @@ namespace WebApplication1.services
         private readonly IDbConnection _db;
         private readonly IHubContext<OrderHub> _hubContext;
 
+        private static readonly Dictionary<string, string> StatusMappingToDb = new(StringComparer.OrdinalIgnoreCase)
+        {
+            { "Chờ xử lý", "Pending" },
+            { "Đang làm", "Pending" },
+            { "Đã hoàn thành", "Completed" },
+            { "Đã hủy", "Cancelled" },
+            { "Pending", "Pending" },
+            { "Completed", "Completed" },
+            { "Cancelled", "Cancelled" }
+        };
+
+        private static readonly Dictionary<string, string> StatusMappingToDisplay = new(StringComparer.OrdinalIgnoreCase)
+        {
+            { "Pending", "Chờ xử lý" },
+            { "Completed", "Đã hoàn thành" },
+            { "Cancelled", "Đã hủy" }
+        };
+
+        private static string NormalizeStatusForDatabase(string? status)
+        {
+            if (string.IsNullOrWhiteSpace(status))
+                return "Pending";
+
+            if (StatusMappingToDb.TryGetValue(status.Trim(), out var dbStatus))
+                return dbStatus;
+
+            throw new ArgumentException("Trạng thái đơn hàng không hợp lệ.");
+        }
+
+        private static string TranslateStatusForDisplay(string? status)
+        {
+            if (string.IsNullOrWhiteSpace(status))
+                return status ?? string.Empty;
+
+            return StatusMappingToDisplay.TryGetValue(status.Trim(), out var displayStatus)
+                ? displayStatus
+                : status;
+        }
+
         public OrderService(IDbConnection db, IHubContext<OrderHub> hubContext)
         {
             _db = db;
@@ -42,7 +81,9 @@ namespace WebApplication1.services
                                    LEFT JOIN users u ON o.user_id = u.user_id
                                    ORDER BY o.created_at DESC;";
 
-            return await _db.QueryAsync<OrderDisplayDTO>(sql);
+            var orders = (await _db.QueryAsync<OrderDisplayDTO>(sql)).ToList();
+            orders.ForEach(o => o.Status = TranslateStatusForDisplay(o.Status));
+            return orders;
         }
 
         // =========================
@@ -66,6 +107,8 @@ namespace WebApplication1.services
             var order = await _db.QueryFirstOrDefaultAsync<OrderDisplayDTO>(orderSql, new { Id = id });
             
             if (order == null) return null;
+
+            order.Status = TranslateStatusForDisplay(order.Status);
 
             const string detailSql = @" SELECT od.order_detail_id AS orderDetailId,
                                                od.order_id AS OrderId,
@@ -159,7 +202,7 @@ namespace WebApplication1.services
                         OrderDate = orderDate,
                         UserId = userId,
                         TableId = tableId,
-                        Status = string.IsNullOrWhiteSpace(status) ? "Pending" : status,
+                        Status = NormalizeStatusForDatabase(status),
                         CustomerId = customerId,
                         Note = note
                     },
@@ -275,7 +318,7 @@ namespace WebApplication1.services
                 TableId = dto.TableId,
                 UserId = userId,
                 CustomerId = dto.CustomerId,
-                Status = dto.Status ?? "Pending",
+                Status = dto.Status ?? "Chờ xử lý",
                 TotalAmount = result.TotalAmount,
                 Source = "Staff",
                 Message = "Có đơn hàng mới do nhân viên tạo"
@@ -302,7 +345,7 @@ namespace WebApplication1.services
                 TableId = dto.TableId,
                 UserId = (int?)null,
                 CustomerId = customerId,
-                Status = "Pending",
+                Status = "Chờ xử lý",
                 TotalAmount = result.TotalAmount,
                 Source = "Customer",
                 Message = "Có đơn hàng mới do khách hàng tạo"
@@ -330,8 +373,8 @@ namespace WebApplication1.services
             if (string.IsNullOrWhiteSpace(dto.Status))
                 throw new ArgumentException("Trạng thái đơn hàng không được để trống.");
 
-            var normalizedStatus = dto.Status.Trim();
-            if (!StatusConstants.OrderStatuses.Contains(normalizedStatus))
+            var normalizedStatus = NormalizeStatusForDatabase(dto.Status);
+            if (!StatusConstants.OrderStatuses.Contains(dto.Status.Trim()))
                 throw new ArgumentException("Trạng thái đơn hàng không hợp lệ.");
 
             using var transaction = _db.BeginTransaction();
@@ -545,7 +588,7 @@ namespace WebApplication1.services
                     @"UPDATE orders
                       SET status = @Status
                       WHERE order_id = @Id;",
-                    new { Id = id, Status = normalizedStatus },
+                    new { Id = id, Status = NormalizeStatusForDatabase(normalizedStatus) },
                     transaction);
 
                 // Nếu order kết thúc -> trả bàn

@@ -9,8 +9,7 @@ namespace WebApplication1.DTOs.order
         [Range(1, int.MaxValue, ErrorMessage = "TableId không hợp lệ")]
         public int? TableId { get; set; }
 
-        [RegularExpression("Pending|Paid|Completed|Cancelled", ErrorMessage = "Status không hợp lệ")]
-        public string? Status { get; set; } = "Pending";
+        public string? Status { get; set; }
 
         [Range(1, int.MaxValue, ErrorMessage = "CustomerId không hợp lệ")]
         public int? CustomerId { get; set; }

@@ -54,6 +54,19 @@
         .modal-field { display: grid; gap: 6px; }
         .modal-field label { font-size: 0.9rem; color: var(--muted); font-weight: 600; }
         .modal-field p { margin: 0; }
+        .create-order-modal { max-width: 960px; width: min(100%, 960px); }
+        .order-creation-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 24px; }
+        .order-creation-panel { background: #faf9f6; border-radius: 20px; padding: 18px; display: grid; gap: 16px; max-height: 560px; overflow: auto; }
+        .order-product-card { display: grid; grid-template-columns: 1fr auto; gap: 14px; align-items: center; padding: 16px; border: 1px solid #ece7e2; border-radius: 16px; }
+        .order-product-card h4 { margin: 0; font-size: 1rem; }
+        .order-product-card p { margin: 4px 0 0; color: var(--muted); font-size: 0.9rem; }
+        .quantity-controls { display: inline-flex; align-items: center; gap: 10px; }
+        .quantity-controls button { width: 34px; height: 34px; border: none; border-radius: 10px; background: #f2f2f2; cursor: pointer; font-size: 1rem; color: var(--text); }
+        .quantity-controls span { min-width: 30px; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; }
+        .cart-table { width: 100%; border-collapse: collapse; }
+        .cart-table th, .cart-table td { padding: 12px 10px; border-bottom: 1px solid #e8e3df; text-align: left; }
+        .cart-table th { background: #f8f3ee; color: var(--muted); font-weight: 600; }
+        .cart-empty { text-align: center; padding: 30px 0; color: var(--muted); }
         .content { padding: 40px 48px; }
         .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
         .topbar h2 { margin: 0; font-size: 1.75rem; }
@@ -70,12 +83,89 @@
         .status-card { background: #f7ece6; border-radius: 20px; padding: 18px; }
         .status-card span { display: block; font-size: 0.95rem; color: var(--muted); }
         .status-card strong { display: block; margin-top: 6px; font-size: 1.6rem; }
+        
+        /* Styles for Orders Page */
+        .content-section { display: none; }
+        .content-section.active { display: block; }
+        
+        .orders-filter { display: flex; gap: 16px; margin: 24px 0; align-items: center; flex-wrap: wrap; }
+        .filter-group { display: flex; gap: 8px; align-items: center; }
+        .filter-group select, .filter-group input { padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 0.95rem; }
+        .filter-group button { padding: 10px 20px; background: var(--accent); color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: background .2s; }
+        .filter-group button:hover { background: var(--accent-dark); }
+        
+        .orders-table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+        .orders-table thead { background: #f5f5f5; }
+        .orders-table th { padding: 14px; text-align: left; font-weight: 600; color: var(--muted); border-bottom: 2px solid #e0e0e0; }
+        .orders-table th input[type="checkbox"] { cursor: pointer; width: 18px; height: 18px; }
+        .orders-table td { padding: 14px; border-bottom: 1px solid #e0e0e0; }
+        .orders-table td input[type="checkbox"] { cursor: pointer; width: 18px; height: 18px; }
+        .orders-table tbody tr:hover { background: #fafafa; }
+        
+        .status-badge { display: inline-block; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; }
+        .status-pending { background: #fff3cd; color: #856404; }
+        .status-completed { background: #d4edda; color: #155724; }
+        .status-cancelled { background: #f8d7da; color: #721c24; }
+        .status-preparing { background: #cfe2ff; color: #084298; }
+        
+        .action-buttons { display: flex; gap: 8px; align-items: center; }
+        .btn-sm { padding: 8px 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; transition: all .2s; }
+        .btn-info { background: #e7f3ff; color: #0066cc; }
+        .btn-info:hover { background: #cce5ff; }
+        .btn-danger { background: #ffe7e7; color: #cc0000; }
+        .btn-danger:hover { background: #ffcccc; }
+        .btn-success { background: #e7f5e7; color: #006620; }
+        .btn-success:hover { background: #cceacc; }
+        
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-content { display: none; position: absolute; background: white; min-width: 150px; box-shadow: 0 8px 16px rgba(0,0,0,0.2); border-radius: 8px; z-index: 1; top: 100%; right: 0; }
+        .dropdown-content a { color: black; padding: 12px 16px; text-decoration: none; display: block; cursor: pointer; transition: background .2s; }
+        .dropdown-content a:hover { background: #f1f1f1; }
+        .dropdown.active .dropdown-content { display: block; }
+        
+        .loading { text-align: center; padding: 40px; color: var(--muted); }
+        .empty-state { text-align: center; padding: 40px; color: var(--muted); }
+        .empty-state i { font-size: 48px; color: #ddd; margin-bottom: 16px; display: block; }
+        
+        .toast { position: fixed; bottom: 20px; right: 20px; padding: 16px 20px; background: var(--accent); color: #fff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 2000; animation: slideIn 0.3s ease; }
+        @keyframes slideIn { from { transform: translateX(400px); } to { transform: translateX(0); } }
+        .toast.error { background: #dc3545; }
+        .toast.success { background: #28a745; }
+        
+        /* Styles for Orders Tabs */
+        .orders-tabs { display: flex; gap: 8px; margin: 24px 0 20px; border-bottom: 2px solid #e0e0e0; }
+        .tab-button { background: none; border: none; padding: 12px 20px; cursor: pointer; font-size: 0.95rem; font-weight: 600; color: var(--muted); border-bottom: 3px solid transparent; transition: all .3s; position: relative; bottom: -2px; }
+        .tab-button:hover { color: var(--accent); }
+        .tab-button.active { color: var(--accent); border-bottom-color: var(--accent); }
+        .tab-button i { margin-right: 8px; }
+        
+        /* Action Buttons at Top */
+        .orders-action-buttons { display: flex; gap: 12px; margin: 20px 0; flex-wrap: wrap; }
+        .action-btn { padding: 12px 20px; border: 1px solid #ddd; background: #fff; color: var(--text); border-radius: 8px; cursor: pointer; font-weight: 600; transition: all .2s; display: flex; align-items: center; gap: 8px; }
+        .action-btn:hover { background: #f5f5f5; border-color: var(--accent); color: var(--accent); }
+        .action-btn i { font-size: 0.9rem; }
+        .action-btn.pay-btn { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .action-btn.pay-btn:hover { background: var(--accent-dark); border-color: var(--accent-dark); }
+        
+        /* Bottom Action Buttons */
+        .orders-bottom-buttons { display: flex; gap: 12px; margin-top: 24px; padding-top: 16px; border-top: 1px solid #e0e0e0; }
+        .bottom-btn { padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all .2s; display: flex; align-items: center; gap: 8px; }
+        .export-csv-btn { background: #4CAF50; color: #fff; }
+        .export-csv-btn:hover { background: #45a049; }
+        .delete-btn { background: #f44336; color: #fff; }
+        .delete-btn:hover { background: #da190b; }
+        
         @media (max-width: 960px) {
             .card { grid-template-columns: 1fr; }
             .sidebar { padding: 28px; }
             .content { padding: 28px; }
             .summary { grid-template-columns: 1fr; }
             .status { grid-template-columns: 1fr; }
+            .orders-table { font-size: 0.85rem; }
+            .orders-table th, .orders-table td { padding: 10px; }
+            .orders-tabs { flex-wrap: wrap; }
+            .orders-action-buttons { flex-direction: column; }
+            .action-btn, .bottom-btn { width: 100%; justify-content: center; }
         }
     </style>
 </head>
@@ -94,7 +184,7 @@
                     <!-- MAIN -->
                     <div class="menu-section">
                         <div class="menu-header">MAIN</div>
-                        <a href="#" class="menu-item active">
+                        <a href="#" class="menu-item active" onclick="showDashboard()">
                             <i class="fas fa-th-large"></i>
                             <span>Dashboard</span>
                         </a>
@@ -109,7 +199,7 @@
                             <span>Commerce</span>
                             <span class="icon">›</span>
                             <div class="submenu">
-                                <a href="#">Orders</a>
+                                <a href="#" onclick="showOrdersPage()">Orders</a>
                                 <a href="#">Sales</a>
                             </div>
                         </div>
@@ -156,41 +246,100 @@
             </aside>
 
             <div class="content">
-                <div class="topbar">
-                    <div>
-                        <h2>Trang chủ Admin</h2>
-                        <p>Chào mừng Admin, bạn có thể quản lý hệ thống ở đây.</p>
+                <!-- DASHBOARD SECTION -->
+                <div id="dashboardSection" class="content-section active">
+                    <div class="topbar">
+                        <div>
+                            <h2>Trang chủ Admin</h2>
+                            <p>Chào mừng Admin, bạn có thể quản lý hệ thống ở đây.</p>
+                        </div>
+                    </div>
+
+                    <div class="summary">
+                        <div class="card-sm">
+                            <h3>Tổng đơn hàng hôm nay</h3>
+                            <strong>128</strong>
+                        </div>
+                        <div class="card-sm">
+                            <h3>Doanh thu dự kiến</h3>
+                            <strong>42.500.000 ₫</strong>
+                        </div>
+                        <div class="card-sm">
+                            <h3>Nhân viên đang hoạt động</h3>
+                            <strong>18</strong>
+                        </div>
+                    </div>
+
+                    <section class="section">
+                        <h3>Thông tin quản trị</h3>
+                        <p>Đây là trang chủ dành riêng cho Admin. Tại đây bạn có thể điều hướng sang các chức năng quản lý chính: nhân viên, sản phẩm, báo cáo doanh thu và cài đặt hệ thống.</p>
+                    </section>
+
+                    <div class="status">
+                        <div class="status-card">
+                            <span>Đơn hàng đang xử lý</span>
+                            <strong>24</strong>
+                        </div>
+                        <div class="status-card">
+                            <span>Sản phẩm sắp hết</span>
+                            <strong>6</strong>
+                        </div>
                     </div>
                 </div>
 
-                <div class="summary">
-                    <div class="card-sm">
-                        <h3>Tổng đơn hàng hôm nay</h3>
-                        <strong>128</strong>
+                <!-- ORDERS SECTION -->
+                <div id="ordersSection" class="content-section">
+                    <div class="topbar">
+                        <div>
+                            <h2>Quản lý đơn hàng</h2>
+                            <p>Xem, cập nhật và quản lý tất cả đơn hàng</p>
+                        </div>
                     </div>
-                    <div class="card-sm">
-                        <h3>Doanh thu dự kiến</h3>
-                        <strong>42.500.000 ₫</strong>
-                    </div>
-                    <div class="card-sm">
-                        <h3>Nhân viên đang hoạt động</h3>
-                        <strong>18</strong>
-                    </div>
-                </div>
 
-                <section class="section">
-                    <h3>Thông tin quản trị</h3>
-                    <p>Đây là trang chủ dành riêng cho Admin. Tại đây bạn có thể điều hướng sang các chức năng quản lý chính: nhân viên, sản phẩm, báo cáo doanh thu và cài đặt hệ thống.</p>
-                </section>
-
-                <div class="status">
-                    <div class="status-card">
-                        <span>Đơn hàng đang xử lý</span>
-                        <strong>24</strong>
+                    <!-- TABS -->
+                    <div class="orders-tabs">
+                        <button class="tab-button active" onclick="switchOrderTab('active')">
+                            <i class="fas fa-fire"></i> Don đang thực hiện (Active)
+                        </button>
+                        <button class="tab-button" onclick="switchOrderTab('history')">
+                            <i class="fas fa-history"></i> Lịch sử (History)
+                        </button>
+                        <button class="tab-button" onclick="switchOrderTab('online')">
+                            <i class="fas fa-laptop"></i> Don Client (Online Orders)
+                        </button>
                     </div>
-                    <div class="status-card">
-                        <span>Sản phẩm sắp hết</span>
-                        <strong>6</strong>
+
+                    <!-- ACTION BUTTONS -->
+                    <div class="orders-action-buttons">
+                        <button class="action-btn" onclick="openFilterModal()">
+                            <i class="fas fa-filter"></i> Filter by Table
+                        </button>
+                        <button class="action-btn" onclick="openSearchModal()">
+                            <i class="fas fa-search"></i> Search
+                        </button>
+                        <button class="action-btn" onclick="openCreateOrderModal()">
+                            <i class="fas fa-plus"></i> Create orders
+                        </button>
+                        <button class="action-btn pay-btn" onclick="exportToCSV()">
+                            <i class="fas fa-download"></i> Pay
+                        </button>
+                    </div>
+
+                    <!-- ORDERS TABLE -->
+                    <div id="ordersTableContainer">
+                        <div class="loading">
+                            <i class="fas fa-spinner fa-spin"></i> Đang tải dữ liệu...
+                        </div>
+                    </div>
+
+                    <!-- BOTTOM ACTION BUTTONS -->
+                    <div class="orders-bottom-buttons">
+                        <button class="bottom-btn export-csv-btn" onclick="exportToCSV()">
+                            <i class="fas fa-file-csv"></i> Xuất CSV
+                        </button>
+                        <button class="bottom-btn delete-btn" onclick="deleteSelectedOrders()">
+                            <i class="fas fa-trash"></i> Delete Orders
+                        </button>
                     </div>
                 </div>
             </div>
@@ -225,7 +374,54 @@
         </div>
     </div>
 
+    <div class="modal" id="createOrderModal">
+        <div class="modal-content create-order-modal">
+            <div class="modal-header">
+                <h2>Tạo đơn hàng mới</h2>
+                <button class="modal-close" onclick="closeCreateOrderModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-field">
+                    <label>Chọn bàn trống</label>
+                    <select id="createOrderTableSelect" onchange="handleCreateOrderTableChange(this.value)"></select>
+                </div>
+                <div class="order-creation-grid">
+                    <div class="order-creation-panel">
+                        <div class="modal-field">
+                            <label>Thực đơn</label>
+                            <div id="createOrderProductsList"></div>
+                        </div>
+                    </div>
+                    <div class="order-creation-panel">
+                        <div class="modal-field">
+                            <label>Giỏ hàng</label>
+                            <div id="createOrderCart"></div>
+                        </div>
+                        <div class="modal-field">
+                            <label>Tổng tiền</label>
+                            <p id="createOrderTotal">0₫</p>
+                        </div>
+                        <div style="display:flex; justify-content:flex-end; gap: 12px; margin-top: 8px;">
+                            <button class="action-btn" type="button" onclick="closeCreateOrderModal()">Hủy</button>
+                            <button class="action-btn pay-btn" type="button" onclick="submitCreateOrder()">Tạo đơn</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
+        const API_BASE_URL = 'http://localhost:5035/api';
+        let allOrders = [];
+        let currentTab = 'active';
+        let selectedOrders = [];
+
+        let createOrderTables = [];
+        let createOrderProducts = [];
+        let createOrderItems = {};
+        let selectedCreateOrderTableId = null;
+
         // Lấy user info từ localStorage khi load trang
         window.addEventListener('DOMContentLoaded', () => {
             loadUserProfile();
@@ -292,6 +488,693 @@
             window.location.href = 'login.html';
         }
 
+        function showSection(sectionId) {
+            document.querySelectorAll('.content-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            document.getElementById(sectionId).classList.add('active');
+        }
+
+        function showOrdersPage() {
+            showSection('ordersSection');
+            loadOrders();
+        }
+
+        function showDashboard() {
+            showSection('dashboardSection');
+        }
+
+        // Lấy token từ localStorage
+        function getToken() {
+            const userJson = localStorage.getItem('user');
+            if (!userJson) return null;
+            const user = JSON.parse(userJson);
+            return user.token || null;
+        }
+
+        // Lấy danh sách đơn hàng từ API
+        async function loadOrders(showToastOnSuccess = true) {
+            const container = document.getElementById('ordersTableContainer');
+            container.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Đang tải dữ liệu...</div>';
+
+            try {
+                const token = getToken();
+                if (!token) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                const response = await fetch(`${API_BASE_URL}/orders`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        window.location.href = 'login.html';
+                        return;
+                    }
+                    throw new Error('Lỗi khi tải dữ liệu');
+                }
+
+                allOrders = await response.json();
+                renderOrdersTable(getFilteredOrders(currentTab));
+                if (showToastOnSuccess) {
+                    showToast('Đã tải dữ liệu thành công', 'success');
+                }
+            } catch (error) {
+                console.error('Error loading orders:', error);
+                container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Lỗi khi tải dữ liệu. Vui lòng thử lại.</p></div>';
+                showToast('Lỗi khi tải dữ liệu: ' + error.message, 'error');
+            }
+        }
+
+        function getFilteredOrders(tab) {
+            let filtered = allOrders;
+            if (tab === 'active') {
+                filtered = allOrders.filter(o => o.status !== 'Đã hoàn thành' && o.status !== 'Đã hủy');
+            } else if (tab === 'history') {
+                filtered = allOrders.filter(o => o.status === 'Đã hoàn thành' || o.status === 'Đã hủy');
+            } else if (tab === 'online') {
+                filtered = allOrders.filter(o => o.isOnline === true);
+            }
+            return filtered;
+        }
+
+        // Render bảng đơn hàng
+        function renderOrdersTable(orders) {
+            const container = document.getElementById('ordersTableContainer');
+
+            if (!orders || orders.length === 0) {
+                container.innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i><p>Không có đơn hàng nào</p></div>';
+                return;
+            }
+
+            let html = `
+                <table class="orders-table">
+                    <thead>
+                        <tr>
+                            <th>
+                                <input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)">
+                            </th>
+                            <th>Mã đơn</th>
+                            <th>Bàn</th>
+                            <th>Thời gian</th>
+                            <th>Khách hàng</th>
+                            <th>Tổng tiền</th>
+                            <th>Trạng thái</th>
+                            <th>Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            orders.forEach(order => {
+                const tableNumber = order.tableId || 'N/A';
+                const orderDate = new Date(order.orderDate).toLocaleString('vi-VN');
+                const customerName = order.customerName || 'Khách lẻ';
+                const totalAmount = order.totalAmount ? order.totalAmount.toLocaleString('vi-VN') : '0';
+                const status = order.status || 'Chờ xử lý';
+                const statusClass = getStatusClass(status);
+                const isSelected = selectedOrders.includes(order.id);
+
+                html += `
+                    <tr>
+                        <td>
+                            <input type="checkbox" class="order-checkbox" value="${order.id}" ${isSelected ? 'checked' : ''} onchange="toggleOrderSelection(${order.id}, this)">
+                        </td>
+                        <td><strong>#${order.id}</strong></td>
+                        <td>${tableNumber}</td>
+                        <td>${orderDate}</td>
+                        <td>${customerName}</td>
+                        <td>${totalAmount}₫</td>
+                        <td><span class="status-badge ${statusClass}">${status}</span></td>
+                        <td>
+                            <div class="action-buttons">
+                                <div class="dropdown" id="dropdown-${order.id}">
+                                    <button class="btn-sm btn-info" onclick="toggleDropdown('${order.id}')">
+                                        <i class="fas fa-ellipsis-v"></i>
+                                    </button>
+                                    <div class="dropdown-content">
+                                        <a onclick="updateOrderStatus(${order.id})"><i class="fas fa-sync"></i> Cập nhật trạng thái</a>
+                                        <a onclick="viewOrderDetails(${order.id})"><i class="fas fa-eye"></i> Xem chi tiết</a>
+                                        <a onclick="deleteOrder(${order.id})" style="color: #cc0000;"><i class="fas fa-trash"></i> Xóa</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                    </tbody>
+                </table>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        function getStatusClass(status) {
+            const statusMap = {
+                'Chờ xử lý': 'status-pending',
+                'Đang làm': 'status-preparing',
+                'Đã hoàn thành': 'status-completed',
+                'Đã hủy': 'status-cancelled'
+            };
+            return statusMap[status] || 'status-pending';
+        }
+
+        function toggleDropdown(orderId) {
+            const dropdown = document.getElementById(`dropdown-${orderId}`);
+            dropdown.classList.toggle('active');
+            
+            // Đóng dropdown khác
+            document.querySelectorAll('.dropdown.active').forEach(d => {
+                if (d.id !== `dropdown-${orderId}`) {
+                    d.classList.remove('active');
+                }
+            });
+        }
+
+        // Đóng dropdown khi click bên ngoài
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.dropdown')) {
+                document.querySelectorAll('.dropdown.active').forEach(d => {
+                    d.classList.remove('active');
+                });
+            }
+        });
+
+        async function updateOrderStatus(orderId) {
+            const statusOptions = ['Chờ xử lý', 'Đang làm', 'Đã hoàn thành', 'Đã hủy'];
+            const currentOrder = allOrders.find(o => o.id === orderId);
+            
+            let statusHtml = '<div style="display: grid; gap: 12px;">';
+            statusOptions.forEach(status => {
+                statusHtml += `<button onclick="setOrderStatus(${orderId}, '${status}')" style="padding: 10px; background: #f0f0f0; border: none; border-radius: 6px; cursor: pointer; transition: background .2s;">${status}</button>`;
+            });
+            statusHtml += '</div>';
+
+            // Simple prompt dialog
+            const selected = prompt('Chọn trạng thái mới cho đơn hàng #' + orderId + ':\n\n1. Chờ xử lý\n2. Đang làm\n3. Đã hoàn thành\n4. Đã hủy\n\nNhập số (1-4):');
+            
+            if (selected) {
+                const statusMap = {
+                    '1': 'Chờ xử lý',
+                    '2': 'Đang làm',
+                    '3': 'Đã hoàn thành',
+                    '4': 'Đã hủy'
+                };
+                const newStatus = statusMap[selected];
+                if (newStatus) {
+                    setOrderStatus(orderId, newStatus);
+                }
+            }
+
+            document.getElementById(`dropdown-${orderId}`).classList.remove('active');
+        }
+
+        async function setOrderStatus(orderId, newStatus) {
+            try {
+                const token = getToken();
+                if (!token) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                const response = await fetch(`${API_BASE_URL}/orders/${orderId}/status`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(newStatus)
+                });
+
+                if (!response.ok) {
+                    throw new Error('Lỗi khi cập nhật trạng thái');
+                }
+
+                await response.json();
+                showToast('Cập nhật trạng thái thành công', 'success');
+
+                await loadOrders(false);
+            } catch (error) {
+                console.error('Error updating order status:', error);
+                showToast('Lỗi: ' + error.message, 'error');
+            }
+        }
+
+        function viewOrderDetails(orderId) {
+            const order = allOrders.find(o => o.id === orderId);
+            if (!order) return;
+
+            let detailsHtml = `
+                <strong>Mã đơn hàng:</strong> #${order.id}<br>
+                <strong>Bàn:</strong> ${order.tableId || 'N/A'}<br>
+                <strong>Thời gian:</strong> ${new Date(order.orderDate).toLocaleString('vi-VN')}<br>
+                <strong>Tổng tiền:</strong> ${(order.totalAmount || 0).toLocaleString('vi-VN')}₫<br>
+                <strong>Trạng thái:</strong> ${order.status}<br>
+                <strong>Nhân viên:</strong> ${order.creatorFullName || 'N/A'}<br>
+                <hr>
+                <strong>Chi tiết sản phẩm:</strong><br>
+            `;
+
+            if (order.details && order.details.length > 0) {
+                order.details.forEach(detail => {
+                    detailsHtml += `- ${detail.productName || 'Product'} x${detail.quantity} = ${(detail.totalPrice || 0).toLocaleString('vi-VN')}₫<br>`;
+                });
+            } else {
+                detailsHtml += 'Không có sản phẩm';
+            }
+
+            alert(detailsHtml);
+        }
+
+        async function deleteOrder(orderId) {
+            if (!confirm('Bạn có chắc chắn muốn xóa đơn hàng này?')) {
+                return;
+            }
+
+            try {
+                const token = getToken();
+                if (!token) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                const response = await fetch(`${API_BASE_URL}/orders/${orderId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Lỗi khi xóa đơn hàng');
+                }
+
+                showToast('Đã xóa đơn hàng thành công', 'success');
+                
+                // Xóa từ local list và re-render
+                allOrders = allOrders.filter(o => o.id !== orderId);
+                renderOrdersTable(allOrders);
+            } catch (error) {
+                console.error('Error deleting order:', error);
+                showToast('Lỗi: ' + error.message, 'error');
+            }
+
+            document.getElementById(`dropdown-${orderId}`).classList.remove('active');
+        }
+
+        function applyFilters() {
+            const tableFilter = document.getElementById('filterTable').value;
+            const statusFilter = document.getElementById('filterStatus').value;
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+
+            let filtered = allOrders.filter(order => {
+                const tableMatch = !tableFilter || order.tableId?.toString() === tableFilter;
+                const statusMatch = !statusFilter || order.status === statusFilter;
+                const searchMatch = !searchTerm || order.id.toString().includes(searchTerm) || order.customerName?.toLowerCase().includes(searchTerm);
+                
+                return tableMatch && statusMatch && searchMatch;
+            });
+
+            renderOrdersTable(filtered);
+        }
+
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // ========== TAB SWITCHING ==========
+        function switchOrderTab(tab) {
+            currentTab = tab;
+            
+            // Update tab buttons
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.closest('.tab-button').classList.add('active');
+            
+            // Filter orders based on tab
+            let filtered = allOrders;
+            if (tab === 'active') {
+                filtered = allOrders.filter(o => o.status !== 'Đã hoàn thành' && o.status !== 'Đã hủy');
+            } else if (tab === 'history') {
+                filtered = allOrders.filter(o => o.status === 'Đã hoàn thành' || o.status === 'Đã hủy');
+            }
+            // Online orders would be filtered by isOnline flag if available
+            
+            renderOrdersTable(filtered);
+            showToast(`Đã chuyển sang tab: ${['active', 'history', 'online'][Object.keys({active: 0, history: 1, online: 2})[tab]]}`, 'success');
+        }
+
+        // ========== FILTER BY TABLE ==========
+        function openFilterModal() {
+            const tables = ['B1', 'B2', 'B3', 'B4', 'B5', 'B6'];
+            const tableList = tables.join('\n');
+            const selected = prompt(`Chọn bàn (Table):\n\n${tableList}\n\nNhập mã bàn (ví dụ: B1):`);
+            
+            if (selected) {
+                const selected_table = selected.trim().toUpperCase();
+                if (tables.includes(selected_table)) {
+                    let filtered = allOrders.filter(o => o.tableId?.toString() === selected_table || o.tableId?.toString() === selected_table.replace('B', ''));
+                    renderOrdersTable(filtered);
+                    showToast(`Lọc theo bàn: ${selected_table}`, 'success');
+                } else {
+                    showToast('Bàn không hợp lệ', 'error');
+                }
+            }
+        }
+
+        // ========== SEARCH ==========
+        function openSearchModal() {
+            const searchTerm = prompt('Nhập mã đơn hàng hoặc tên khách hàng:');
+            
+            if (searchTerm) {
+                const term = searchTerm.toLowerCase();
+                let filtered = allOrders.filter(o => 
+                    o.id.toString().includes(term) || 
+                    o.customerName?.toLowerCase().includes(term)
+                );
+                renderOrdersTable(filtered);
+                showToast(`Tìm kiếm: ${filtered.length} kết quả`, 'success');
+            }
+        }
+
+        // ========== CREATE ORDER ==========
+        async function openCreateOrderModal() {
+            const token = getToken();
+            if (!token) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            createOrderItems = {};
+            selectedCreateOrderTableId = null;
+            document.getElementById('createOrderModal').classList.add('active');
+            document.getElementById('createOrderTableSelect').innerHTML = '<option value="">Đang tải bàn trống...</option>';
+            document.getElementById('createOrderProductsList').innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Đang tải thực đơn...</div>';
+            document.getElementById('createOrderCart').innerHTML = '<div class="cart-empty">Chưa có món nào trong giỏ hàng</div>';
+            document.getElementById('createOrderTotal').textContent = '0₫';
+
+            try {
+                const [tablesResponse, productsResponse] = await Promise.all([
+                    fetch(`${API_BASE_URL}/tables`, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    }),
+                    fetch(`${API_BASE_URL}/product`, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                ]);
+
+                if (!tablesResponse.ok || !productsResponse.ok) {
+                    throw new Error('Không tải được dữ liệu tạo đơn');
+                }
+
+                const tables = await tablesResponse.json();
+                const products = await productsResponse.json();
+
+                createOrderTables = Array.isArray(tables) ? tables.filter(t => t.status === 'Available') : [];
+                createOrderProducts = Array.isArray(products) ? products.filter(p => p.isAvailable) : [];
+
+                renderCreateOrderModal();
+            } catch (error) {
+                console.error('Error loading create order data:', error);
+                document.getElementById('createOrderProductsList').innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Không thể tải dữ liệu tạo đơn.</p></div>';
+                showToast('Lỗi khi tải dữ liệu tạo đơn: ' + error.message, 'error');
+            }
+        }
+
+        function closeCreateOrderModal() {
+            document.getElementById('createOrderModal').classList.remove('active');
+        }
+
+        function handleCreateOrderTableChange(value) {
+            selectedCreateOrderTableId = value ? parseInt(value, 10) : null;
+            renderCreateOrderModal();
+        }
+
+        function renderCreateOrderModal() {
+            const tableSelect = document.getElementById('createOrderTableSelect');
+            if (!tableSelect) return;
+
+            tableSelect.innerHTML = '<option value="">Chọn bàn nhận đơn</option>' +
+                createOrderTables.map(table => `<option value="${table.tableId}">Bàn ${table.tableId}</option>`).join('');
+            if (selectedCreateOrderTableId) {
+                tableSelect.value = selectedCreateOrderTableId.toString();
+            }
+
+            const productsList = document.getElementById('createOrderProductsList');
+            const cartContainer = document.getElementById('createOrderCart');
+            const totalDisplay = document.getElementById('createOrderTotal');
+
+            if (!selectedCreateOrderTableId) {
+                productsList.innerHTML = '<div class="cart-empty">Chọn bàn trống trước khi chọn món</div>';
+            } else if (createOrderProducts.length === 0) {
+                productsList.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Không có sản phẩm khả dụng.</p></div>';
+            } else {
+                productsList.innerHTML = createOrderProducts.map(product => {
+                    const quantity = createOrderItems[product.productId]?.quantity || 0;
+                    return `
+                        <div class="order-product-card">
+                            <div>
+                                <h4>${product.name}</h4>
+                                <p>${product.categoryName || ''} • ${product.price.toLocaleString('vi-VN')}₫</p>
+                            </div>
+                            <div class="quantity-controls">
+                                <button type="button" onclick="updateCreateOrderQuantity(${product.productId}, -1)">-</button>
+                                <span id="create-product-qty-${product.productId}">${quantity}</span>
+                                <button type="button" onclick="updateCreateOrderQuantity(${product.productId}, 1)">+</button>
+                            </div>
+                        </div>`;
+                }).join('');
+            }
+
+            const orderItems = Object.values(createOrderItems);
+            if (orderItems.length === 0) {
+                cartContainer.innerHTML = '<div class="cart-empty">Giỏ hàng trống. Chọn món để thêm vào đơn.</div>';
+            } else {
+                cartContainer.innerHTML = `
+                    <table class="cart-table">
+                        <thead>
+                            <tr>
+                                <th>Món</th>
+                                <th>Số lượng</th>
+                                <th>Thành tiền</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${orderItems.map(item => `
+                                <tr>
+                                    <td>${item.productName}</td>
+                                    <td>${item.quantity}</td>
+                                    <td>${(item.unitPrice * item.quantity).toLocaleString('vi-VN')}₫</td>
+                                    <td><button type="button" class="btn-sm btn-danger" onclick="removeProductFromCreateOrder(${item.productId})">Xóa</button></td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>`;
+            }
+
+            totalDisplay.textContent = calculateCreateOrderTotal().toLocaleString('vi-VN') + '₫';
+        }
+
+        function updateCreateOrderQuantity(productId, delta) {
+            const product = createOrderProducts.find(p => p.productId === productId);
+            if (!product) return;
+
+            const current = createOrderItems[productId]?.quantity || 0;
+            const next = Math.max(0, current + delta);
+
+            if (next === 0) {
+                delete createOrderItems[productId];
+            } else {
+                createOrderItems[productId] = {
+                    productId: product.productId,
+                    productName: product.name,
+                    unitPrice: product.price,
+                    quantity: next
+                };
+            }
+
+            renderCreateOrderModal();
+        }
+
+        function removeProductFromCreateOrder(productId) {
+            delete createOrderItems[productId];
+            renderCreateOrderModal();
+        }
+
+        function calculateCreateOrderTotal() {
+            return Object.values(createOrderItems).reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0);
+        }
+
+        async function submitCreateOrder() {
+            if (!selectedCreateOrderTableId) {
+                showToast('Vui lòng chọn bàn trống trước khi tạo đơn.', 'error');
+                return;
+            }
+
+            const details = Object.values(createOrderItems).map(item => ({ ProductId: item.productId, Quantity: item.quantity }));
+            if (details.length === 0) {
+                showToast('Vui lòng chọn ít nhất một món.', 'error');
+                return;
+            }
+
+            try {
+                const token = getToken();
+                if (!token) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                const response = await fetch(`${API_BASE_URL}/orders`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        orderDate: new Date().toISOString(),
+                        tableId: selectedCreateOrderTableId,
+                        status: null,
+                        customerId: null,
+                        note: null,
+                        details
+                    })
+                });
+
+                if (!response.ok) {
+                    const responseText = await response.text();
+                    let errorMessage = 'Lỗi khi tạo đơn hàng';
+                    try {
+                        const errorBody = JSON.parse(responseText);
+                        errorMessage = errorBody?.message || errorMessage;
+                    } catch {
+                        if (responseText?.trim()) {
+                            errorMessage = responseText;
+                        }
+                    }
+                    console.error('Create order failed', response.status, responseText);
+                    throw new Error(errorMessage);
+                }
+
+                const result = await response.json();
+                showToast(`Tạo đơn hàng thành công (#${result.orderId}).`, 'success');
+                closeCreateOrderModal();
+                await loadOrders(false);
+            } catch (error) {
+                console.error('Error creating order:', error);
+                const message = error?.message || String(error) || 'Lỗi không xác định';
+                showToast('Lỗi tạo đơn: ' + message, 'error');
+            }
+        }
+
+        // ========== EXPORT TO CSV ==========
+        function exportToCSV() {
+            if (allOrders.length === 0) {
+                showToast('Không có dữ liệu để xuất', 'error');
+                return;
+            }
+
+            let csvContent = 'Mã đơn,Bàn,Thời gian,Khách hàng,Tổng tiền,Trạng thái\n';
+            
+            allOrders.forEach(order => {
+                const orderId = order.id;
+                const table = order.tableId || 'N/A';
+                const date = new Date(order.orderDate).toLocaleString('vi-VN');
+                const customer = order.customerName || 'Khách lẻ';
+                const amount = order.totalAmount || 0;
+                const status = order.status || 'Chờ xử lý';
+                
+                csvContent += `${orderId},${table},"${date}",${customer},${amount},"${status}"\n`;
+            });
+
+            // Create blob and download
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `orders_${new Date().getTime()}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            showToast('Đã xuất CSV thành công', 'success');
+        }
+
+        // ========== DELETE SELECTED ORDERS ==========
+        function deleteSelectedOrders() {
+            if (selectedOrders.length === 0) {
+                showToast('Vui lòng chọn ít nhất một đơn hàng', 'error');
+                return;
+            }
+
+            if (!confirm(`Bạn có chắc chắn muốn xóa ${selectedOrders.length} đơn hàng?`)) {
+                return;
+            }
+
+            selectedOrders.forEach(orderId => {
+                deleteOrder(orderId);
+            });
+            
+            selectedOrders = [];
+            showToast('Đã xóa các đơn hàng đã chọn', 'success');
+        }
+
+        // ========== CHECKBOX FUNCTIONS ==========
+        function toggleSelectAll(checkbox) {
+            const checkboxes = document.querySelectorAll('.order-checkbox');
+            if (checkbox.checked) {
+                checkboxes.forEach(cb => {
+                    cb.checked = true;
+                    const orderId = parseInt(cb.value);
+                    if (!selectedOrders.includes(orderId)) {
+                        selectedOrders.push(orderId);
+                    }
+                });
+            } else {
+                checkboxes.forEach(cb => cb.checked = false);
+                selectedOrders = [];
+            }
+        }
+
+        function toggleOrderSelection(orderId, checkbox) {
+            if (checkbox.checked) {
+                if (!selectedOrders.includes(orderId)) {
+                    selectedOrders.push(orderId);
+                }
+            } else {
+                selectedOrders = selectedOrders.filter(id => id !== orderId);
+                document.getElementById('selectAll').checked = false;
+            }
+        }
+
         // Click để mở modal thông tin tài khoản
         document.getElementById('profileTrigger').addEventListener('click', openAccountModal);
 
@@ -300,6 +1183,13 @@
             if (e.target.id === 'accountModal') {
                 closeAccountModal();
             }
+        });
+
+        // Thêm event listener cho filter inputs
+        document.getElementById('filterTable').addEventListener('change', applyFilters);
+        document.getElementById('filterStatus').addEventListener('change', applyFilters);
+        document.getElementById('searchInput').addEventListener('keyup', (e) => {
+            if (e.key === 'Enter') applyFilters();
         });
     </script>
 </body>

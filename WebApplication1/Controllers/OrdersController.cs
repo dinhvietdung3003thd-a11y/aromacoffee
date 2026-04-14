@@ -65,16 +65,26 @@ namespace WebApplication1.Controllers
 
             try
             {
+                Console.WriteLine($"[DEBUG] Creating order for user {userId}, table {input.TableId}, details count: {input.Details?.Count ?? 0}");
                 int newId = await _orderService.AddByStaffAsync(input, userId);
+                Console.WriteLine($"[DEBUG] Order created successfully with ID: {newId}");
                 return CreatedAtAction(nameof(GetById), new { id = newId }, new { OrderId = newId });
             }
             catch (ArgumentException ex)
             {
+                Console.WriteLine($"[DEBUG] ArgumentException: {ex.Message}");
                 return BadRequest(new { message = ex.Message });
             }
             catch (InvalidOperationException ex)
             {
+                Console.WriteLine($"[DEBUG] InvalidOperationException: {ex.Message}");
                 return Conflict(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[DEBUG] Unexpected error: {ex.Message}");
+                Console.WriteLine($"[DEBUG] Stack trace: {ex.StackTrace}");
+                return StatusCode(500, new { message = "Lỗi server khi tạo đơn hàng." });
             }
         }
 

@@ -4,8 +4,11 @@ namespace WebApplication1.Common
     {
         public static readonly HashSet<string> OrderStatuses = new(StringComparer.OrdinalIgnoreCase)
         {
+            "Chờ xử lý",
+            "Đang làm",
+            "Đã hoàn thành",
+            "Đã hủy",
             "Pending",
-            "Paid",
             "Completed",
             "Cancelled"
         };
