@@ -1,18 +1,24 @@
 ﻿using Dapper;
+using System.Collections.Generic;
 using System.Data;
+using System.Threading.Tasks;
 using WebApplication1.DTOs.recipes;
 using WebApplication1.services.interfaces;
+
 namespace WebApplication1.services
-{ 
+{
     public class RecipeService : IRecipeService
     {
         private readonly IDbConnection _db;
         public RecipeService(IDbConnection db) => _db = db;
 
         // --- TRIỂN KHAI CÁC HÀM TỪ IBASE ---
+
         public async Task<RecipeDisplayDTO?> GetByIdAsync(int id)
         {
             string sql = @"SELECT r.recipe_id,
+                          r.product_id AS ProductId,
+                          r.inventory_id AS InventoryId,
                           p.name AS ProductName,
                           i.name AS InventoryName,
                           r.quantity_needed AS QuantityNeeded,
@@ -52,26 +58,38 @@ namespace WebApplication1.services
             => await _db.ExecuteAsync("DELETE FROM recipes WHERE recipe_id = @id", new { id });
 
         // --- TRIỂN KHAI CÁC HÀM MỞ RỘNG (JOIN) ---
+
         public async Task<IEnumerable<RecipeDisplayDTO>> GetAllDisplayAsync()
         {
-            string sql = @"SELECT r.recipe_id, p.name as ProductName, i.name as InventoryName, 
-                              r.quantity_needed, i.unit 
-                       FROM recipes r
-                       JOIN products p ON r.product_id = p.product_id
-                       JOIN inventory i ON r.inventory_id = i.inventory_id";
+            string sql = @"SELECT r.recipe_id,
+                          r.product_id AS ProductId,
+                          r.inventory_id AS InventoryId,
+                          p.name as ProductName,
+                          i.name as InventoryName,
+                          r.quantity_needed AS QuantityNeeded,
+                          i.unit 
+                   FROM recipes r
+                   JOIN products p ON r.product_id = p.product_id
+                   JOIN inventory i ON r.inventory_id = i.inventory_id";
+            
             return await _db.QueryAsync<RecipeDisplayDTO>(sql);
         }
 
         public async Task<IEnumerable<RecipeDisplayDTO>> GetDisplayByProductIdAsync(int productId)
         {
-            string sql = @"SELECT r.recipe_id, p.name as ProductName, i.name as InventoryName, 
-                              r.quantity_needed, i.unit 
-                       FROM recipes r
-                       JOIN products p ON r.product_id = p.product_id
-                       JOIN inventory i ON r.inventory_id = i.inventory_id
-                       WHERE r.product_id = @productId";
+            string sql = @"SELECT r.recipe_id,
+                          r.product_id AS ProductId,
+                          r.inventory_id AS InventoryId,
+                          p.name as ProductName,
+                          i.name as InventoryName,
+                          r.quantity_needed AS QuantityNeeded,
+                          i.unit 
+                   FROM recipes r
+                   JOIN products p ON r.product_id = p.product_id
+                   JOIN inventory i ON r.inventory_id = i.inventory_id
+                   WHERE r.product_id = @productId";
+
             return await _db.QueryAsync<RecipeDisplayDTO>(sql, new { productId });
         }
     }
 }
-

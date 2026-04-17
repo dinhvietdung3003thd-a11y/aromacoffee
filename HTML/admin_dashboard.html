@@ -23,11 +23,12 @@
         body { margin: 0; min-height: 100vh; font-family: 'Inter', system-ui, sans-serif; background: linear-gradient(135deg, #fff 0%, #f2e6dd 100%); color: var(--text); }
         html, body { min-height: 100%; }
         .page { display: flex; justify-content: center; padding: 40px 24px; }
-        .card { width: min(1080px, 100%); min-height: calc(100vh - 80px); background: var(--surface); border-radius: 30px; box-shadow: var(--shadow); overflow: hidden; display: grid; grid-template-columns: 320px 1fr; align-items: stretch; }
-        .sidebar { background: var(--accent); color: var(--text-light); padding: 36px 28px; display: flex; flex-direction: column; justify-content: space-between; position: sticky; top: 40px; align-self: stretch; min-height: calc(100vh - 80px); }
+        .card { width: min(1250px, 100%); max-width: 1250px; min-height: calc(100vh - 80px); background: var(--surface); border-radius: 30px; box-shadow: var(--shadow); overflow: hidden; display: grid; grid-template-columns: 320px 1fr; align-items: stretch; }
+        .sidebar { background: var(--accent); color: var(--text-light); padding: 36px 28px; display: flex; flex-direction: column; justify-content: space-between; position: sticky; top: 40px; align-self: stretch; min-height: calc(100vh - 80px); border-radius: 30px 0 0 30px; }
         .profile { display: flex; flex-direction: column; align-items: center; gap: 14px; padding-bottom: 28px; border-bottom: 1px solid rgba(255,255,255,0.2); cursor: pointer; transition: opacity .2s ease; }
         .profile:hover { opacity: 0.9; }
-        .profile-avatar { width: 80px; height: 80px; border-radius: 50%; background: rgba(255,255,255,0.3); display: flex; align-items: center; justify-content: center; font-size: 36px; font-weight: 700; }
+        .profile-avatar { width: 80px; height: 80px; border-radius: 50%; background: rgba(255,255,255,0.3); display: flex; align-items: center; justify-content: center; font-size: 36px; font-weight: 700; overflow: hidden; }
+        .profile-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
         .profile-name { margin: 0; font-size: 1.1rem; font-weight: 700; text-align: center; }
         .profile-role { margin: 0; font-size: 0.9rem; color: rgba(255,255,255,0.8); text-align: center; text-transform: capitalize; }
         .sidebar h1 { margin: 0 0 14px; font-size: 2rem; letter-spacing: 0.6px; }
@@ -47,6 +48,45 @@
         .submenu a:hover { background: rgba(255,255,255,0.15); }
         .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
         .modal.active { display: flex; }
+        .modal-content { background: #fff; border-radius: 20px; padding: 32px; max-width: 400px; width: 90%; box-shadow: 0 30px 60px rgba(0,0,0,0.25); }
+        
+        /* Account Modal Styles */
+        .account-modal-content { max-width: 800px !important; }
+        .account-modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; padding-bottom: 20px; border-bottom: 2px solid #f0f0f0; }
+        .account-modal-header h2 { margin: 0; font-size: 1.4rem; color: var(--text); }
+        .account-modal-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+        .account-section { background: #f9f9f9; border-radius: 16px; padding: 24px; }
+        .account-section-title { display: flex; align-items: center; gap: 10px; margin: 0 0 20px; font-size: 1.05rem; font-weight: 700; color: var(--text); }
+        .account-section-title i { color: var(--accent); font-size: 1.15rem; }
+        .account-field { display: grid; gap: 8px; margin-bottom: 16px; }
+        .account-field label { font-size: 0.9rem; font-weight: 600; color: var(--text); }
+        .account-field input { padding: 11px 13px; border: 1.5px solid #ddd; border-radius: 10px; font-size: 0.95rem; font-family: inherit; transition: border-color .2s; }
+        .account-field input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(178, 93, 87, 0.1); }
+        .account-field input:read-only { background: #f0f0f0; color: var(--muted); cursor: not-allowed; }
+        .account-field input.error { border-color: #dc3545; }
+        .account-field-error { color: #dc3545; font-size: 0.85rem; margin-top: 4px; display: none; }
+        .account-field-error.show { display: block; }
+        .account-field-hint { color: var(--muted); font-size: 0.85rem; margin-top: 4px; }
+        .account-actions { display: grid; gap: 12px; margin-top: 20px; }
+        .account-avatar-input { display: none; }
+        .avatar-picker { display: grid; gap: 8px; cursor: pointer; padding: 12px; border: 1px dashed #ccc; border-radius: 12px; background: #fff; transition: border-color .2s, background .2s; }
+        .avatar-picker:hover { border-color: var(--accent); background: rgba(178, 93, 87, 0.05); }
+        .avatar-preview { width: 100px; height: 100px; border-radius: 18px; background: #f5f5f5; border: 1px solid #ddd; display: flex; align-items: center; justify-content: center; font-size: 2rem; color: #6f5f5a; overflow: hidden; margin: 0 auto; }
+        .avatar-preview img { width: 100%; height: 100%; object-fit: cover; }
+        .avatar-picker-text { color: var(--muted); font-size: 0.9rem; text-align: center; }
+        .account-btn { padding: 11px 18px; border: none; border-radius: 10px; font-size: 0.95rem; font-weight: 700; cursor: pointer; transition: all .2s; }
+        .account-btn-primary { background: var(--accent); color: #fff; }
+        .account-btn-primary:hover { background: var(--accent-dark); transform: translateY(-1px); }
+        .account-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+        .account-modal-footer { display: flex; gap: 12px; margin-top: 28px; padding-top: 20px; border-top: 2px solid #f0f0f0; }
+        .account-modal-footer button { flex: 1; }
+        
+        /* Responsive account modal */
+        @media (max-width: 768px) {
+            .account-modal-layout { grid-template-columns: 1fr; }
+            .account-modal-content { max-width: 90vw !important; }
+        }
+        
         .modal-content { background: #fff; border-radius: 20px; padding: 32px; max-width: 400px; width: 90%; box-shadow: 0 30px 60px rgba(0,0,0,0.25); }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
         .modal-header h2 { margin: 0; }
@@ -147,6 +187,48 @@
         .action-btn i { font-size: 0.9rem; }
         .action-btn.pay-btn { background: var(--accent); color: #fff; border-color: var(--accent); }
         .action-btn.pay-btn:hover { background: var(--accent-dark); border-color: var(--accent-dark); }
+
+        .hrm-actions { display: flex; gap: 16px; margin: 24px 0; flex-wrap: wrap; align-items: center; }
+        .employee-table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+        .employee-table th, .employee-table td { padding: 14px; border-bottom: 1px solid #e0e0e0; text-align: left; }
+        .employee-table th { background: #f5f5f5; color: var(--muted); font-weight: 600; }
+        .employee-table td { vertical-align: middle; }
+        .employee-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+        .role-chip { display: inline-flex; padding: 6px 10px; border-radius: 999px; background: #f3f1ef; color: #5f5046; font-size: 0.85rem; font-weight: 600; }
+        .modal-body input, .modal-body select, .modal-body textarea { width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid #ddd; font-size: 0.95rem; font-family: inherit; }
+        .modal-body textarea { resize: vertical; min-height: 120px; }
+        .modal-footer { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
+
+        .settings-container { display: grid; grid-template-columns: 1fr; gap: 28px; margin-top: 24px; }
+        .settings-section { background: #fff; border-radius: 20px; padding: 28px; box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+        .settings-section h3 { margin: 0 0 20px; font-size: 1.15rem; color: var(--text); font-weight: 700; display: flex; align-items: center; gap: 8px; }
+        .settings-section h3 i { color: var(--accent); font-size: 1.2rem; }
+        .settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; }
+        .settings-field { display: grid; gap: 8px; }
+        .settings-field label { font-size: 0.95rem; font-weight: 600; color: var(--text); }
+        .settings-field input[type="text"], .settings-field input[type="email"], .settings-field input[type="tel"], .settings-field input[type="number"], .settings-field select { width: 100%; padding: 12px 14px; border: 1px solid #ddd; border-radius: 10px; font-size: 0.95rem; }
+        .settings-field input:focus, .settings-field select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(178, 93, 87, 0.1); }
+        .settings-field textarea { width: 100%; padding: 12px 14px; border: 1px solid #ddd; border-radius: 10px; font-size: 0.95rem; min-height: 80px; font-family: inherit; }
+        .settings-field .helper-text { font-size: 0.85rem; color: var(--muted); margin-top: 4px; }
+        .logo-upload-area { border: 2px dashed #ddd; border-radius: 12px; padding: 24px; text-align: center; cursor: pointer; transition: all .2s; }
+        .logo-upload-area:hover { border-color: var(--accent); background: rgba(178, 93, 87, 0.05); }
+        .logo-preview { width: 120px; height: 120px; margin: 0 auto 12px; border-radius: 12px; overflow: hidden; background: #f5f5f5; display: flex; align-items: center; justify-content: center; font-size: 48px; }
+        .logo-upload-input { display: none; }
+        .toggle-switch { display: flex; align-items: center; gap: 12px; }
+        .switch { position: relative; display: inline-block; width: 50px; height: 28px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .3s; border-radius: 28px; }
+        .slider:before { position: absolute; content: ""; height: 22px; width: 22px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--accent); }
+        input:checked + .slider:before { transform: translateX(22px); }
+        .settings-actions { display: flex; gap: 12px; margin-top: 28px; justify-content: flex-end; flex-wrap: wrap; }
+        .sync-button { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 14px 24px; background: linear-gradient(135deg, #ff8c42, #ff6b35); color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: 700; transition: all .2s; }
+        .sync-button:hover { transform: translateY(-2px); box-shadow: 0 8px 16px rgba(255, 107, 53, 0.3); }
+        .sync-button:disabled { opacity: 0.6; cursor: not-allowed; }
+        .sync-status { margin-top: 12px; padding: 12px; border-radius: 8px; font-size: 0.9rem; display: none; }
+        .sync-status.success { background: #d4edda; color: #155724; display: block; }
+        .sync-status.error { background: #f8d7da; color: #721c24; display: block; }
+        .sync-status.loading { background: #cfe2ff; color: #084298; display: block; }
         
         /* Bottom Action Buttons */
         .orders-bottom-buttons { display: flex; gap: 12px; margin-top: 24px; padding-top: 16px; border-top: 1px solid #e0e0e0; }
@@ -174,6 +256,53 @@
         .product-table th { background: #f5f5f5; color: var(--muted); font-weight: 600; }
         .product-table tbody tr:hover { background: #fafafa; }
         .product-table td { font-size: 0.95rem; }
+
+        .recipe-page-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 24px; margin-top: 24px; }
+        .recipe-master-panel, .recipe-detail-panel { background: #fdf9f4; border-radius: 24px; padding: 24px; box-shadow: 0 12px 30px rgba(0,0,0,0.04); min-height: 520px; overflow: auto; }
+        .recipe-panel { display: grid; gap: 18px; }
+        .recipe-panel h3 { margin: 0; font-size: 1.2rem; }
+        .recipe-actions { display: grid; grid-template-columns: 1fr minmax(220px, 260px); gap: 16px; align-items: end; margin-bottom: 18px; }
+        .recipe-actions input, .recipe-actions select { width: 100%; padding: 12px 14px; border-radius: 10px; border: 1px solid #ddd; background: #fff; color: var(--text); }
+        .recipe-detail-placeholder { min-height: 360px; display: grid; place-items: center; color: var(--muted); text-align: center; }
+        .recipe-table { width: 100%; min-width: 100%; border-collapse: collapse; }
+        .recipe-table th, .recipe-table td { padding: 12px 12px; border-bottom: 1px solid #e0e0e0; text-align: left; }
+        .recipe-table th { background: #f5f5f5; color: var(--muted); font-weight: 600; }
+        .recipe-table td { vertical-align: middle; }
+        .recipe-table .quantity-input { width: 100px; }
+        .recipe-detail-header { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+        .recipe-detail-header p { margin: 4px 0 0; color: var(--muted); }
+        .remove-btn { min-width: 100px; }
+        .inventory-summary-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin: 24px 0; }
+        .inventory-actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 24px 0; }
+        .inventory-info-panel { background: #fdf9f4; border-radius: 24px; padding: 24px; box-shadow: 0 12px 30px rgba(0,0,0,0.04); margin-top: 24px; }
+        .badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; font-size: 0.85rem; font-weight: 700; }
+        .badge.in-stock { background: #d4f5dc; color: #1b5e20; }
+        .badge.low-stock { background: #fff5cc; color: #8a6d0b; }
+        .badge.out-of-stock { background: #f8d7da; color: #721c24; }
+        .inventory-table-wrap { overflow-x: auto; }
+        .inventory-modal-content { width: min(560px, 100%); }
+        .supplier-summary-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin: 24px 0; }
+        .supplier-card { background: #fff; border-radius: 24px; padding: 22px 26px; box-shadow: 0 10px 28px rgba(0,0,0,0.06); }
+        .supplier-actions input, .supplier-actions select { padding: 12px 14px; border-radius: 10px; border: 1px solid #ddd; background: #fff; color: var(--text); }
+        .supplier-actions .action-btn { min-width: 180px; }
+        .supplier-status-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 90px; padding: 6px 12px; border-radius: 999px; font-weight: 700; font-size: 0.85rem; }
+        .supplier-status-badge.active { background: #d4f5dc; color: #1b5e20; }
+        .supplier-status-badge.inactive { background: #f8d7da; color: #721c24; }
+        .supplier-debt { font-weight: 700; color: #1f4b8d; }
+        .supplier-header { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+        .supplier-table-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+        .supplier-modal-content { width: min(580px, 100%); }
+        .supplier-summary-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin: 24px 0; }
+        .supplier-card { background: #fff; border-radius: 24px; padding: 22px 26px; box-shadow: 0 10px 28px rgba(0,0,0,0.06); }
+        .supplier-actions input, .supplier-actions select { padding: 12px 14px; border-radius: 10px; border: 1px solid #ddd; background: #fff; color: var(--text); }
+        .supplier-actions .action-btn { min-width: 180px; }
+        .supplier-status-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 90px; padding: 6px 12px; border-radius: 999px; font-weight: 700; font-size: 0.85rem; }
+        .supplier-status-badge.active { background: #d4f5dc; color: #1b5e20; }
+        .supplier-status-badge.inactive { background: #f8d7da; color: #721c24; }
+        .supplier-debt { font-weight: 700; color: #1f4b8d; }
+        .supplier-header { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+        .supplier-table-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+        .supplier-modal-content { width: min(580px, 100%); }
         
         @media (max-width: 960px) {
             .card { grid-template-columns: 1fr; }
@@ -194,7 +323,7 @@
         <section class="card">
             <aside class="sidebar">
                 <div>
-                    <div class="profile" id="profileTrigger">
+                    <div class="profile" id="profileTrigger" onclick="openAccountModal()">
                         <div class="profile-avatar" id="profileAvatar">A</div>
                         <p class="profile-name" id="profileName">Loading...</p>
                         <p class="profile-role" id="profileRole">user</p>
@@ -231,7 +360,7 @@
                             <div class="submenu">
                                 <a href="#" onclick="showProductsPage()">Products</a>
                                 <a href="#" onclick="showCategoriesPage()">Categories</a>
-                                <a href="#">Recipes</a>
+                                <a href="#" onclick="showRecipesPage()">Recipes</a>
                             </div>
                         </div>
 
@@ -240,8 +369,8 @@
                             <span>Logistics</span>
                             <span class="icon">›</span>
                             <div class="submenu">
-                                <a href="#">Inventory</a>
-                                <a href="#">Suppliers</a>
+                                <a href="#" onclick="showInventoryPage()">Inventory</a>
+                                <a href="#" onclick="showSuppliersPage()">Suppliers</a>
                             </div>
                         </div>
                     </div>
@@ -249,11 +378,11 @@
                     <!-- SYSTEM -->
                     <div class="menu-section">
                         <div class="menu-header">SYSTEM</div>
-                        <a href="#" class="menu-item">
+                        <a href="#" class="menu-item" onclick="showHRMPage()">
                             <i class="fas fa-users"></i>
                             <span>HRM (Employee)</span>
                         </a>
-                        <a href="#" class="menu-item">
+                        <a href="#" class="menu-item" onclick="showSettingsPage()">
                             <i class="fas fa-cog"></i>
                             <span>Settings</span>
                         </a>
@@ -448,84 +577,467 @@
                 <div id="categoriesSection" class="content-section">
                     <div class="topbar">
                         <div>
-                            <h2>Quản lý danh mục</h2>
-                            <p>Thêm, xóa và xem danh sách danh mục</p>
+                            <h2>Quản lý Danh mục Cafe</h2>
+                            <p>Quản lý nhóm sản phẩm, phân quyền, chăm sóc công và trạng thái tài khoản.</p>
                         </div>
                     </div>
 
-                    <div class="product-page-top">
-                        <div class="product-panel">
-                            <h3>Thêm danh mục</h3>
-                            <div class="product-fields">
-                                <div>
-                                    <label>Categories ID</label>
-                                    <input id="categoryIdInput" type="text" placeholder="Nhập ID danh mục" readonly>
-                                </div>
-                                <div>
-                                    <label>Name categories</label>
-                                    <input id="categoryNameInput" type="text" placeholder="Nhập tên danh mục">
-                                </div>
-                                <div>
-                                    <label>Description</label>
-                                    <textarea id="categoryDescriptionInput" placeholder="Mô tả danh mục"></textarea>
-                                </div>
-                                <div>
-                                    <label>Created at</label>
-                                    <input id="categoryCreatedAtInput" type="text" readonly>
-                                </div>
-                            </div>
-                            <div class="product-actions">
-                                <button class="action-btn pay-btn" onclick="addCategory()">Add Category</button>
-                                <button class="action-btn btn-danger" onclick="clearCategoryForm()">Clear</button>
-                            </div>
+                    <!-- Stats Row -->
+                    <div class="summary" style="margin-top: 24px;">
+                        <div class="card-sm">
+                            <h3>TỔNG DANH MỤC</h3>
+                            <strong id="totalCategoriesCount">0</strong>
                         </div>
-                        <div class="product-panel product-delete-panel">
-                            <h3>Xóa danh mục</h3>
-                            <div>
-                                <label>Category ID</label>
-                                <input id="deleteCategoryIdInput" type="text" placeholder="Nhập Category ID để xóa">
-                            </div>
-                            <button class="action-btn btn-danger" onclick="deleteCategory()">Delete Category</button>
+                        <div class="card-sm">
+                            <h3>TỔNG SỐ MÓN</h3>
+                            <strong id="totalProductsCount">0</strong>
                         </div>
                     </div>
 
-                    <div class="product-table-section">
-                        <h3>Danh sách danh mục</h3>
-                        <div id="categoryTableContainer">
+                    <!-- Actions & Search -->
+                    <div style="display: flex; gap: 16px; margin: 24px 0; align-items: center; flex-wrap: wrap;">
+                        <button class="action-btn pay-btn" onclick="openCategoryModal()">
+                            <i class="fas fa-plus"></i> Add New Category
+                        </button>
+                        <input type="text" id="categoriesSearchInput" placeholder="Search by name or description" 
+                               style="flex: 1; min-width: 280px; padding: 12px 14px; border: 1px solid #ddd; border-radius: 10px; font-size: 0.95rem;"
+                               oninput="filterCategories()">
+                    </div>
+
+                    <!-- Categories Table -->
+                    <div class="section">
+                        <div id="categoriesTableContainer" style="overflow-x: auto;">
                             <div class="loading">
                                 <i class="fas fa-spinner fa-spin"></i> Đang tải dữ liệu...
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        </section>
-    </main>
 
+                <!-- INVENTORY SECTION -->
+                <div id="inventorySection" class="content-section">
+                    <div class="topbar">
+                        <div>
+                            <h2>Quản lý Kho hàng</h2>
+                            <p>Nhập xuất, kiểm kê và báo cáo tồn kho theo nguyên liệu.</p>
+                        </div>
+                    </div>
+
+                    <div class="orders-action-buttons inventory-actions">
+                        <button class="action-btn pay-btn" onclick="openInventoryTransactionModal('Import')">
+                            <i class="fas fa-file-import"></i> Stock In
+                        </button>
+                        <button class="action-btn btn-danger" onclick="openInventoryTransactionModal('Export')">
+                            <i class="fas fa-file-export"></i> Stock Out
+                        </button>
+                        <button class="action-btn" onclick="loadInventoryReport()">
+                            <i class="fas fa-chart-line"></i> Inventory Report
+                        </button>
+                        <button id="lowStockFilterButton" class="action-btn" onclick="toggleLowStockFilter()">
+                            <i class="fas fa-exclamation-triangle"></i> Low Stock Filter
+                        </button>
+                    </div>
+
+                    <div class="inventory-summary-grid">
+                        <div class="card-sm">
+                            <h3>Tổng mặt hàng</h3>
+                            <strong id="inventoryTotalItems">0</strong>
+                        </div>
+                        <div class="card-sm">
+                            <h3>Sắp hết</h3>
+                            <strong id="inventoryLowStockCount">0</strong>
+                        </div>
+                        <div class="card-sm">
+                            <h3>Hết hàng</h3>
+                            <strong id="inventoryOutOfStockCount">0</strong>
+                        </div>
+                    </div>
+
+                    <div id="inventoryReportContainer" class="section"></div>
+
+                    <div class="product-table-section">
+                        <h3>Danh sách nguyên liệu</h3>
+                        <div id="inventoryTableContainer">
+                            <div class="loading">
+                                <i class="fas fa-spinner fa-spin"></i> Đang tải dữ liệu kho...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="suppliersSection" class="content-section">
+                    <div class="topbar">
+                        <div>
+                            <h2>Quản lý Nhà cung cấp</h2>
+                            <p>Quản lý đối tác cung cấp, công nợ và lịch sử nhập hàng.</p>
+                        </div>
+                    </div>
+
+                    <div class="orders-action-buttons supplier-actions">
+                        <button class="action-btn pay-btn" onclick="openSupplierModal('add')">
+                            <i class="fas fa-plus"></i> Add New Supplier
+                        </button>
+                        <input id="supplierSearchInput" type="text" placeholder="Search by name, phone or contact" oninput="filterSupplierList()" style="flex:1; min-width:220px;">
+                        <select id="supplierCategoryFilter" onchange="filterSupplierList()" style="min-width:220px;">
+                            <option value="">All supplier groups</option>
+                        </select>
+                    </div>
+
+                    <div class="supplier-summary-grid">
+                        <div class="card-sm supplier-card">
+                            <h3>Total Suppliers</h3>
+                            <strong id="supplierTotalCount">0</strong>
+                        </div>
+                        <div class="card-sm supplier-card">
+                            <h3>Active</h3>
+                            <strong id="supplierActiveCount">0</strong>
+                        </div>
+                        <div class="card-sm supplier-card">
+                            <h3>Outstanding Debt</h3>
+                            <strong id="supplierTotalDebt">0 ₫</strong>
+                        </div>
+                    </div>
+
+                    <div class="product-table-section">
+                        <h3>Supplier Partners</h3>
+                        <div id="supplierTableContainer">
+                            <div class="loading">
+                                <i class="fas fa-spinner fa-spin"></i> Loading suppliers...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="hrmSection" class="content-section">
+                    <div class="topbar">
+                        <div>
+                            <h2>HRM - Employee Management</h2>
+                            <p>Quản lý nhân viên, phân quyền, chấm công và trạng thái tài khoản.</p>
+                        </div>
+                    </div>
+
+                    <div class="orders-action-buttons hrm-actions">
+                        <button class="action-btn pay-btn" onclick="openEmployeeModal('add')">
+                            <i class="fas fa-user-plus"></i> Add New Employee
+                        </button>
+                        <select id="hrmRoleFilter" onchange="applyHRMFilters()">
+                            <option value="All">All Roles</option>
+                            <option value="Admin">Admin</option>
+                            <option value="Cashier">Cashier</option>
+                            <option value="Barista">Barista</option>
+                        </select>
+                        <input id="hrmSearchInput" type="text" placeholder="Search by name or phone" oninput="applyHRMFilters()" style="flex:1; min-width:220px;">
+                        <button class="action-btn" onclick="exportTimesheet()">
+                            <i class="fas fa-file-export"></i> Export Timesheet
+                        </button>
+                    </div>
+
+                    <div class="supplier-summary-grid hrm-summary-grid">
+                        <div class="card-sm">
+                            <h3>Total Employees</h3>
+                            <strong id="hrmTotalCount">0</strong>
+                        </div>
+                        <div class="card-sm">
+                            <h3>Active Count</h3>
+                            <strong id="hrmActiveCount">0</strong>
+                        </div>
+                        <div class="card-sm">
+                            <h3>Role Access Summary</h3>
+                            <p style="margin:0; color:var(--muted); line-height:1.6;">
+                                Admin: full access. <br>
+                                Cashier / Barista: Orders, Tables only. <br>
+                                Inventory / HRM restricted to Admin.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="product-table-section">
+                        <h3>Employee Directory</h3>
+                        <div id="hrmTableContainer">
+                            <table class="orders-table employee-table">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Position</th>
+                                        <th>Phone</th>
+                                        <th>Email</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="hrmTableBody">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="settingsSection" class="content-section">
+                    <div class="topbar">
+                        <div>
+                            <h2>Cài đặt Hệ thống - Aroma Cafe</h2>
+                            <p>Quản lý thông tin quán, cấu hình tài chính, và các tùy chọn hệ thống.</p>
+                        </div>
+                    </div>
+
+                    <div class="settings-container">
+                        <!-- GENERAL SETTINGS -->
+                        <div class="settings-section">
+                            <h3><i class="fas fa-store"></i> General Settings</h3>
+                            <div class="settings-grid">
+                                <div class="settings-field">
+                                    <label>Store Name</label>
+                                    <input id="settingsStoreName" type="text" placeholder="Tên quán" value="Aroma Cafe Hà Nội">
+                                </div>
+                                <div class="settings-field">
+                                    <label>Address</label>
+                                    <input id="settingsAddress" type="text" placeholder="Địa chỉ quán" value="123 Phố Huế, Hai Bà Trưng, Hà Nội">
+                                </div>
+                                <div class="settings-field">
+                                    <label>Hotline</label>
+                                    <input id="settingsHotline" type="tel" placeholder="Số điện thoại" value="1900-XXXX">
+                                </div>
+                                <div class="settings-field">
+                                    <label>Email</label>
+                                    <input id="settingsEmail" type="email" placeholder="Email" value="contact@aroma.vn">
+                                </div>
+                            </div>
+                            <div class="settings-field" style="margin-top: 16px;">
+                                <label>Logo & Brand Identity</label>
+                                <div class="logo-upload-area" onclick="document.getElementById('logoUploadInput').click()">
+                                    <div class="logo-preview" id="logoPreview">🏪</div>
+                                    <p style="margin: 0; color: var(--muted); font-weight: 600;">Click để upload Logo</p>
+                                    <p style="margin: 4px 0 0; color: var(--muted); font-size: 0.85rem;">PNG, JPG hoặc GIF (Max 2MB)</p>
+                                </div>
+                                <input id="logoUploadInput" type="file" class="logo-upload-input" accept="image/*">
+                            </div>
+                        </div>
+
+                        <!-- FINANCIAL & TAX SETTINGS -->
+                        <div class="settings-section">
+                            <h3><i class="fas fa-dollar-sign"></i> Financial & Tax</h3>
+                            <div class="settings-grid">
+                                <div class="settings-field">
+                                    <label>VAT Tax Rate (%)</label>
+                                    <input id="settingsVATRate" type="number" placeholder="Nhập %" value="8" min="0" max="100" step="0.1">
+                                    <p class="helper-text">Thuế sẽ được tự động tính cộng vào hóa đơn</p>
+                                </div>
+                                <div class="settings-field">
+                                    <label>Service Charge (%)</label>
+                                    <input id="settingsServiceCharge" type="number" placeholder="Nhập %" value="0" min="0" max="100" step="0.1">
+                                    <p class="helper-text">Phí dịch vụ thêm (nếu có)</p>
+                                </div>
+                                <div class="settings-field">
+                                    <label>Currency Display</label>
+                                    <select id="settingsCurrency">
+                                        <option value="VND">Vietnamese Dong (₫)</option>
+                                        <option value="USD">US Dollar ($)</option>
+                                        <option value="EUR">Euro (€)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SYSTEM & DATA SETTINGS -->
+                        <div class="settings-section">
+                            <h3><i class="fas fa-cogs"></i> System & Data Management</h3>
+                            
+                            <!-- ElasticSearch Sync -->
+                            <div style="margin-bottom: 24px;">
+                                <h4 style="margin: 0 0 12px; font-size: 0.95rem; font-weight: 600; color: var(--text);">Sync ElasticSearch</h4>
+                                <p style="margin: 0 0 12px; color: var(--muted); font-size: 0.9rem;">Đồng bộ dữ liệu tìm kiếm với ElasticSearch. Sử dụng khi bạn thêm/sửa/xóa nhiều sản phẩm.</p>
+                                <button class="sync-button" id="syncElasticBtn" onclick="syncElasticSearch()">
+                                    <i class="fas fa-sync-alt"></i> Sync ElasticSearch Now
+                                </button>
+                                <div class="sync-status" id="syncStatus"></div>
+                            </div>
+
+                            <!-- Maintenance Mode -->
+                            <div style="padding-top: 24px; border-top: 1px solid #e0e0e0;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                                    <div>
+                                        <h4 style="margin: 0 0 4px; font-size: 0.95rem; font-weight: 600; color: var(--text);">Maintenance Mode</h4>
+                                        <p style="margin: 0; color: var(--muted); font-size: 0.9rem;">Chế độ bảo trì - Khách không thể đặt hàng khi bật.</p>
+                                    </div>
+                                    <label class="switch">
+                                        <input id="maintenanceModeToggle" type="checkbox" onchange="toggleMaintenanceMode()">
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <p id="maintenanceStatus" style="margin: 8px 0 0; padding: 10px 12px; background: #d4edda; color: #155724; border-radius: 8px; font-size: 0.9rem; display: none;">Chế độ bảo trì: TẮT</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-actions">
+                        <button class="action-btn" onclick="resetSettings()">Reset to Default</button>
+                        <button class="action-btn pay-btn" onclick="saveSettings()">
+                            <i class="fas fa-save"></i> Save Changes
+                        </button>
+                    </div>
+                </div>
+
+                <!-- RECIPES SECTION -->
+
+                <div id="recipesSection" class="content-section">
+                    <div class="topbar">
+                        <div>
+                            <h2>Quản lý Recipes</h2>
+                            <p>Quản lý công thức nguyên liệu cho từng sản phẩm.</p>
+                        </div>
+                    </div>
+
+                    <div class="recipe-page-grid">
+                        <div class="recipe-master-panel">
+                            <div class="recipe-actions">
+                                <input id="recipeSearchInput" type="text" placeholder="Tìm theo tên sản phẩm..." oninput="filterRecipeProducts()">
+                                <select id="recipeCategoryFilter" onchange="filterRecipeProducts()">
+                                    <option value="">Tất cả danh mục</option>
+                                </select>
+                            </div>
+                            <div id="recipeProductListContainer">
+                                <div class="loading">
+                                    <i class="fas fa-spinner fa-spin"></i> Đang tải danh sách sản phẩm...
+                                </div>
+                            </div>
+                        </div>
+                        <div class="recipe-detail-panel">
+                            <div id="recipeDetailPlaceholder" class="recipe-detail-placeholder">
+                                <div>
+                                    <i class="fas fa-utensils" style="font-size: 2rem;"></i>
+                                    <p>Chọn một sản phẩm bên trái để xem và chỉnh sửa công thức.</p>
+                                </div>
+                            </div>
+                            <div id="recipeEditorContainer" style="display:none;"></div>
+                        </div>
+                    </div>
+                </div>
+                    </div>
+                </div>
+        </section>
     <!-- Modal Thông tin tài khoản -->
     <div class="modal" id="accountModal">
+        <div class="modal-content account-modal-content">
+            <div class="account-modal-header">
+                <h2>Cài đặt Tài khoản Admin</h2>
+                <button class="modal-close" onclick="closeAccountModal()">×</button>
+            </div>
+            <div class="account-modal-layout">
+                <!-- PROFILE INFORMATION SECTION -->
+                <div class="account-section">
+                    <h3 class="account-section-title"><i class="fas fa-user"></i> THÔNG TIN CÁ NHÂN</h3>
+                    
+                    <div class="account-field">
+                        <label>Ảnh đại diện</label>
+                        <div class="avatar-picker" onclick="document.getElementById('accountAvatarInput').click()">
+                            <div class="avatar-preview" id="accountAvatarPreview">A</div>
+                            <div class="avatar-picker-text">Chọn ảnh đại diện</div>
+                        </div>
+                        <input id="accountAvatarInput" type="file" accept="image/*" class="account-avatar-input">
+                    </div>
+                    
+                    <div class="account-field">
+                        <label>Username</label>
+                        <input id="accountUsername" type="text" readonly>
+                    </div>
+                    
+                    <div class="account-field">
+                        <label>Họ và Tên</label>
+                        <input id="accountFullName" type="text" placeholder="Nhập họ tên">
+                        <div class="account-field-error" id="accountFullNameError"></div>
+                    </div>
+                    
+                    <div class="account-field">
+                        <label>Email</label>
+                        <input id="accountEmail" type="email" placeholder="example@email.com">
+                        <div class="account-field-error" id="accountEmailError"></div>
+                    </div>
+                    
+                    <div class="account-field">
+                        <label>Số điện thoại</label>
+                        <input id="accountPhone" type="tel" placeholder="0987654321">
+                        <div class="account-field-error" id="accountPhoneError"></div>
+                    </div>
+                    
+                    <div class="account-actions">
+                        <button class="account-btn account-btn-primary" onclick="updateProfileInfo()">Lưu thay đổi</button>
+                    </div>
+                </div>
+
+                <!-- SECURITY & PASSWORD SECTION -->
+                <div class="account-section">
+                    <h3 class="account-section-title"><i class="fas fa-lock"></i> BẢO MẬT & MẬT KHẨU</h3>
+                    
+                    <div class="account-field">
+                        <label>Mật khẩu hiện tại</label>
+                        <input id="accountCurrentPassword" type="password" placeholder="Nhập mật khẩu hiện tại">
+                        <div class="account-field-error" id="accountCurrentPasswordError"></div>
+                    </div>
+                    
+                    <div class="account-field">
+                        <label>Mật khẩu mới</label>
+                        <input id="accountNewPassword" type="password" placeholder="Nhập mật khẩu mới">
+                        <p class="account-field-hint">Mật khẩu phải từ 6 ký tự trở lên</p>
+                        <div class="account-field-error" id="accountNewPasswordError"></div>
+                    </div>
+                    
+                    <div class="account-field">
+                        <label>Xác nhận mật khẩu mới</label>
+                        <input id="accountConfirmPassword" type="password" placeholder="Nhập lại mật khẩu mới">
+                        <div class="account-field-error" id="accountConfirmPasswordError"></div>
+                    </div>
+                    
+                    <div class="account-actions">
+                        <button class="account-btn account-btn-primary" onclick="changePassword()">Đổi mật khẩu</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="employeeModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Thông tin tài khoản</h2>
-                <button class="modal-close" onclick="closeAccountModal()">×</button>
+                <h2 id="employeeModalTitle">Add New Employee</h2>
+                <button class="modal-close" onclick="closeEmployeeModal()">×</button>
             </div>
             <div class="modal-body">
                 <div class="modal-field">
-                    <label>Tên người dùng</label>
-                    <p id="modalUsername">-</p>
+                    <label>Full Name</label>
+                    <input id="employeeFullName" type="text" placeholder="Enter full name">
                 </div>
                 <div class="modal-field">
-                    <label>Tên đầy đủ</label>
-                    <p id="modalFullName">-</p>
+                    <label>Phone</label>
+                    <input id="employeePhone" type="text" placeholder="Enter phone number">
                 </div>
                 <div class="modal-field">
-                    <label>Quyền hạn</label>
-                    <p id="modalRole">-</p>
+                    <label>Email</label>
+                    <input id="employeeEmail" type="email" placeholder="Enter email address">
                 </div>
                 <div class="modal-field">
-                    <label>Số điện thoại</label>
-                    <p id="modalPhoneNumber">-</p>
+                    <label>Username</label>
+                    <input id="employeeUsername" type="text" placeholder="Enter username">
                 </div>
+                <div class="modal-field" id="employeePasswordRow">
+                    <label>Initial Password</label>
+                    <input id="employeePassword" type="password" placeholder="Enter initial password">
+                </div>
+                <div class="modal-field">
+                    <label>Position</label>
+                    <select id="employeeRole">
+                        <option value="Admin">Admin</option>
+                        <option value="Cashier">Cashier</option>
+                        <option value="Barista">Barista</option>
+                    </select>
+                </div>
+                <div class="modal-field">
+                    <label>Base Salary</label>
+                    <input id="employeeBaseSalary" type="text" placeholder="Enter base salary">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="action-btn" type="button" onclick="closeEmployeeModal()">Cancel</button>
+                <button class="action-btn pay-btn" id="employeeModalSubmit" type="button" onclick="submitEmployeeForm()">Save Employee</button>
             </div>
         </div>
     </div>
@@ -567,6 +1079,233 @@
         </div>
     </div>
 
+    <div class="modal" id="inventoryTransactionModal">
+        <div class="modal-content inventory-modal-content">
+            <div class="modal-header">
+                <h2 id="inventoryTransactionModalTitle">Stock In</h2>
+                <button class="modal-close" onclick="closeInventoryTransactionModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="inventoryTransactionTypeInput" value="Import">
+                <div class="modal-field">
+                    <label>Nguyên liệu</label>
+                    <select id="inventoryTransactionItemSelect"></select>
+                </div>
+                <div class="modal-field">
+                    <label>Số lượng</label>
+                    <input id="inventoryTransactionQuantityInput" type="number" min="0.0001" step="0.01" placeholder="Nhập số lượng" />
+                </div>
+                <div class="modal-field">
+                    <label>Giá / đơn vị</label>
+                    <input id="inventoryTransactionPriceInput" type="number" min="0" step="0.01" placeholder="Giá" />
+                </div>
+                <div class="modal-field">
+                    <label>Ghi chú</label>
+                    <textarea id="inventoryTransactionNoteInput" placeholder="Cho biết lý do hoặc mô tả giao dịch"></textarea>
+                </div>
+                <div style="display:flex; justify-content:flex-end; gap: 12px; margin-top: 12px;">
+                    <button class="action-btn" type="button" onclick="closeInventoryTransactionModal()">Hủy</button>
+                    <button class="action-btn pay-btn" type="button" onclick="submitInventoryTransaction()">Create Transaction</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="inventoryHistoryModal">
+        <div class="modal-content inventory-modal-content">
+            <div class="modal-header">
+                <h2 id="inventoryHistoryModalTitle">Lịch sử giao dịch</h2>
+                <button class="modal-close" onclick="closeInventoryHistoryModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-field">
+                    <div class="inventory-table-wrap">
+                        <table class="product-table">
+                            <thead>
+                                <tr>
+                                    <th>Loại giao dịch</th>
+                                    <th>Số lượng</th>
+                                    <th>Đơn vị</th>
+                                    <th>Ngày</th>
+                                    <th>Nhân viên</th>
+                                    <th>Ghi chú</th>
+                                </tr>
+                            </thead>
+                            <tbody id="inventoryHistoryTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="stockAdjustmentModal">
+        <div class="modal-content inventory-modal-content">
+            <div class="modal-header">
+                <h2>Stock Adjustment</h2>
+                <button class="modal-close" onclick="closeStockAdjustmentModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-field">
+                    <label>Nguyên liệu</label>
+                    <p id="stockAdjustmentName"></p>
+                </div>
+                <div class="modal-field">
+                    <label>Số lượng hiện tại</label>
+                    <p id="stockAdjustmentCurrent"></p>
+                </div>
+                <div class="modal-field">
+                    <label>Số lượng thực tế</label>
+                    <input id="stockAdjustmentActual" type="number" min="0" step="0.01" placeholder="Nhập số lượng thực tế" />
+                </div>
+                <div class="modal-field">
+                    <label>Ghi chú</label>
+                    <textarea id="stockAdjustmentNote" placeholder="Lý do điều chỉnh"></textarea>
+                </div>
+                <div style="display:flex; justify-content:flex-end; gap: 12px; margin-top: 12px;">
+                    <button class="action-btn" type="button" onclick="closeStockAdjustmentModal()">Hủy</button>
+                    <button class="action-btn pay-btn" type="button" onclick="submitStockAdjustment()">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Modal -->
+    <div class="modal" id="categoryModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="categoryModalTitle">Add New Category</h2>
+                <button class="modal-close" onclick="closeCategoryModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-field">
+                    <label>Category Name</label>
+                    <input id="categoryNameInputModal" type="text" placeholder="Tên danh mục (e.g., Cà phê)">
+                </div>
+                <div class="modal-field">
+                    <label>Description</label>
+                    <textarea id="categoryDescriptionInputModal" placeholder="Mô tả danh mục"></textarea>
+                </div>
+            </div>
+            <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px;">
+                <button class="action-btn" onclick="closeCategoryModal()">Cancel</button>
+                <button class="action-btn pay-btn" onclick="saveCategoryModal()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="supplierModal">
+        <div class="modal-content supplier-modal-content">
+            <div class="modal-header">
+                <h2 id="supplierModalTitle">Add New Supplier</h2>
+                <button class="modal-close" onclick="closeSupplierModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-field">
+                    <label>Supplier Name</label>
+                    <input id="supplierNameInput" type="text" placeholder="Supplier name" />
+                </div>
+                <div class="modal-field">
+                    <label>Contact Name</label>
+                    <input id="supplierContactInput" type="text" placeholder="Contact name" />
+                </div>
+                <div class="modal-field">
+                    <label>Phone</label>
+                    <input id="supplierPhoneInput" type="text" placeholder="Phone number" />
+                </div>
+                <div class="modal-field">
+                    <label>Email</label>
+                    <input id="supplierEmailInput" type="email" placeholder="Email address" />
+                </div>
+                <div class="modal-field">
+                    <label>Address</label>
+                    <input id="supplierAddressInput" type="text" placeholder="Address" />
+                </div>
+                <div class="modal-field">
+                    <label>Supplier Group</label>
+                    <input id="supplierGroupInput" type="text" placeholder="Supplier group or category" />
+                </div>
+                <div class="modal-field">
+                    <label>Outstanding Balance</label>
+                    <input id="supplierBalanceInput" type="number" min="0" step="0.01" placeholder="Balance" />
+                </div>
+                <div class="modal-field" style="display:flex; align-items:center; gap: 12px;">
+                    <input id="supplierActiveInput" type="checkbox" checked />
+                    <label for="supplierActiveInput">Active supplier</label>
+                </div>
+                <div style="display:flex; justify-content:flex-end; gap: 12px; margin-top: 12px;">
+                    <button class="action-btn" type="button" onclick="closeSupplierModal()">Cancel</button>
+                    <button class="action-btn pay-btn" id="supplierModalSubmit" type="button" onclick="submitSupplierForm()">Save Supplier</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="supplierHistoryModal">
+        <div class="modal-content supplier-modal-content">
+            <div class="modal-header">
+                <h2 id="supplierHistoryModalTitle">Purchase History</h2>
+                <button class="modal-close" onclick="closeSupplierHistoryModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="inventory-table-wrap">
+                    <table class="product-table">
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Quantity</th>
+                                <th>Price</th>
+                                <th>Date</th>
+                                <th>Note</th>
+                                <th>Supplier</th>
+                            </tr>
+                        </thead>
+                        <tbody id="supplierHistoryTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="supplierSettleModal">
+        <div class="modal-content supplier-modal-content">
+            <div class="modal-header">
+                <h2>Settle Supplier Balance</h2>
+                <button class="modal-close" onclick="closeSupplierSettleModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-field">
+                    <label>Supplier</label>
+                    <p id="settleSupplierName"></p>
+                </div>
+                <div class="modal-field">
+                    <label>Current balance</label>
+                    <p id="settleSupplierBalance"></p>
+                </div>
+                <div class="modal-field">
+                    <label>Payment amount</label>
+                    <input id="settleAmountInput" type="number" min="0" step="0.01" placeholder="Amount to pay" />
+                </div>
+                <div style="display:flex; justify-content:flex-end; gap: 12px; margin-top: 12px;">
+                    <button class="action-btn" type="button" onclick="closeSupplierSettleModal()">Cancel</button>
+                    <button class="action-btn pay-btn" type="button" onclick="submitSupplierSettlement()">Record Payment</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="supplierInfoModal">
+        <div class="modal-content inventory-modal-content">
+            <div class="modal-header">
+                <h2 id="supplierInfoModalTitle">Thông tin NCC</h2>
+                <button class="modal-close" onclick="closeSupplierInfoModal()">×</button>
+            </div>
+            <div class="modal-body" id="supplierInfoBody">
+                <p>Thông tin sẽ xuất hiện tại đây.</p>
+            </div>
+        </div>
+    </div>
+
     <script>
         const API_BASE_URL = 'http://localhost:5035/api';
         let allOrders = [];
@@ -574,6 +1313,20 @@
         let allCategories = [];
         let currentTab = 'active';
         let selectedOrders = [];
+        
+        let allInventoryItems = [];
+        let inventoryData = [];
+        let inventoryTransactions = [];
+        let inventorySuppliers = [];
+        let suppliersData = [];
+        let supplierTransactions = [];
+        let currentSupplierEditId = null;
+        let supplierBalanceAdjustId = null;
+        let lowStockFilterActive = false;
+        let recipeProducts = [];
+        let currentRecipeProduct = null;
+        let currentRecipeRows = [];
+        let deletedRecipeIds = [];
 
         let createOrderTables = [];
         let createOrderProducts = [];
@@ -583,6 +1336,10 @@
         // Lấy user info từ localStorage khi load trang
         window.addEventListener('DOMContentLoaded', () => {
             loadUserProfile();
+            const avatarInput = document.getElementById('accountAvatarInput');
+            if (avatarInput) {
+                avatarInput.addEventListener('change', handleAccountAvatarChange);
+            }
         });
 
         function loadUserProfile() {
@@ -597,11 +1354,17 @@
             const fullName = user.user?.fullName || user.user?.FullName || 'User';
             const role = user.user?.role || user.user?.Role || 'user';
             const username = user.user?.username || user.user?.Username || 'Unknown';
+            const email = user.user?.email || user.user?.Email || '';
             const phoneNumber = user.user?.phoneNumber || user.user?.PhoneNumber || '-';
+            const avatarUrl = user.user?.avatar || user.user?.Avatar || null;
 
-            // Set profile avatar - lấy chữ cái đầu
-            const avatar = fullName.charAt(0).toUpperCase();
-            document.getElementById('profileAvatar').textContent = avatar;
+            // Set profile avatar
+            if (avatarUrl) {
+                document.getElementById('profileAvatar').innerHTML = `<img src="${avatarUrl}" alt="Avatar">`;
+            } else {
+                const avatar = fullName.charAt(0).toUpperCase();
+                document.getElementById('profileAvatar').textContent = avatar;
+            }
 
             // Set profile name
             document.getElementById('profileName').textContent = fullName;
@@ -610,22 +1373,268 @@
             document.getElementById('profileRole').textContent = role || 'user';
 
             // Lưu lại để dùng khi click vào profile
-            window.currentUser = { fullName, role, username, phoneNumber };
+            window.currentUser = { fullName, role, username, email, phoneNumber, avatar: avatarUrl };
+        }
+
+        function setAccountAvatarPreview(src) {
+            const preview = document.getElementById('accountAvatarPreview');
+            if (!preview) return;
+            if (src) {
+                preview.innerHTML = `<img src="${src}" alt="Avatar">`;
+            } else {
+                const letter = (window.currentUser?.fullName || 'U').charAt(0).toUpperCase();
+                preview.textContent = letter;
+            }
+        }
+
+        async function handleAccountAvatarChange(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = () => {
+                if (typeof reader.result === 'string') {
+                    setAccountAvatarPreview(reader.result);
+                    if (!window.currentUser) window.currentUser = {};
+                    window.currentUser.avatar = reader.result;
+                }
+            };
+            reader.readAsDataURL(file);
         }
 
         function openAccountModal() {
             if (!window.currentUser) return;
             
-            document.getElementById('modalUsername').textContent = window.currentUser.username;
-            document.getElementById('modalFullName').textContent = window.currentUser.fullName;
-            document.getElementById('modalRole').textContent = window.currentUser.role;
-            document.getElementById('modalPhoneNumber').textContent = window.currentUser.phoneNumber;
+            // Load profile information
+            document.getElementById('accountUsername').value = window.currentUser.username || '';
+            document.getElementById('accountFullName').value = window.currentUser.fullName || '';
+            document.getElementById('accountEmail').value = window.currentUser.email || '';
+            document.getElementById('accountPhone').value = window.currentUser.phoneNumber || '';
+            setAccountAvatarPreview(window.currentUser.avatar || null);
+            
+            // Reset file input and password fields
+            const avatarInput = document.getElementById('accountAvatarInput');
+            if (avatarInput) avatarInput.value = '';
+            document.getElementById('accountCurrentPassword').value = '';
+            document.getElementById('accountNewPassword').value = '';
+            document.getElementById('accountConfirmPassword').value = '';
+            
+            // Clear all error messages
+            clearAllAccountErrors();
             
             document.getElementById('accountModal').classList.add('active');
         }
 
         function closeAccountModal() {
             document.getElementById('accountModal').classList.remove('active');
+            clearAllAccountErrors();
+        }
+
+        function clearAllAccountErrors() {
+            ['accountFullNameError', 'accountEmailError', 'accountPhoneError', 
+             'accountCurrentPasswordError', 'accountNewPasswordError', 'accountConfirmPasswordError']
+            .forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.classList.remove('show');
+            });
+            
+            ['accountFullName', 'accountEmail', 'accountPhone', 'accountCurrentPassword', 'accountNewPassword', 'accountConfirmPassword']
+            .forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.classList.remove('error');
+            });
+        }
+
+        function showAccountError(fieldId, errorId, message) {
+            const errorEl = document.getElementById(errorId);
+            const fieldEl = document.getElementById(fieldId);
+            if (errorEl && message) {
+                errorEl.textContent = message;
+                errorEl.classList.add('show');
+            }
+            if (fieldEl) {
+                fieldEl.classList.add('error');
+            }
+        }
+
+        function clearAccountError(fieldId, errorId) {
+            const errorEl = document.getElementById(errorId);
+            const fieldEl = document.getElementById(fieldId);
+            if (errorEl) errorEl.classList.remove('show');
+            if (fieldEl) fieldEl.classList.remove('error');
+        }
+
+        function validateEmail(email) {
+            const emailRegex = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;
+            return emailRegex.test(email);
+        }
+
+        function validatePhone(phone) {
+            const phoneRegex = /^\\d{10,11}$/;
+            return phoneRegex.test(phone.replace(/[^\\d]/g, ''));
+        }
+
+        async function parseJsonSafe(response) {
+            const text = await response.text();
+            if (!text) return null;
+            try {
+                return JSON.parse(text);
+            } catch {
+                return { message: text };
+            }
+        }
+
+        async function updateProfileInfo() {
+            clearAllAccountErrors();
+            
+            const fullName = document.getElementById('accountFullName').value.trim();
+            const email = document.getElementById('accountEmail').value.trim();
+            const phone = document.getElementById('accountPhone').value.trim();
+            
+            let hasError = false;
+            
+            // Validation
+            if (!fullName) {
+                showAccountError('accountFullName', 'accountFullNameError', 'Họ tên không được để trống');
+                hasError = true;
+            }
+            
+            if (email && !validateEmail(email)) {
+                showAccountError('accountEmail', 'accountEmailError', 'Email không hợp lệ');
+                hasError = true;
+            }
+            
+            if (phone && !validatePhone(phone)) {
+                showAccountError('accountPhone', 'accountPhoneError', 'Số điện thoại phải từ 10-11 chữ số');
+                hasError = true;
+            }
+            
+            if (hasError) return;
+            
+            try {
+                const token = getToken();
+                if (!token) {
+                    showToast('Vui lòng đăng nhập lại', 'error');
+                    return;
+                }
+                
+                const response = await fetch(`${API_BASE_URL}/Auth/update-profile`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        fullName: fullName,
+                        email: email,
+                        phoneNumber: phone
+                    })
+                });
+                
+                if (!response.ok) {
+                    const error = await parseJsonSafe(response) || {};
+                    showToast(error.message || 'Cập nhật thất bại', 'error');
+                    return;
+                }
+                
+                await parseJsonSafe(response);
+                
+                // Update currentUser
+                window.currentUser.fullName = fullName;
+                window.currentUser.email = email;
+                window.currentUser.phoneNumber = phone;
+                
+                // Update sidebar name and avatar
+                document.getElementById('profileName').textContent = fullName;
+                if (window.currentUser.avatar) {
+                    document.getElementById('profileAvatar').innerHTML = `<img src="${window.currentUser.avatar}" alt="Avatar">`;
+                } else {
+                    document.getElementById('profileAvatar').textContent = fullName.charAt(0).toUpperCase();
+                }
+                
+                localStorage.setItem('user', JSON.stringify({user: window.currentUser, token: localStorage.getItem('token')}));
+                
+                showToast('Cập nhật thông tin thành công!', 'success');
+            } catch (error) {
+                console.error('Update profile error:', error);
+                showToast('Lỗi: ' + error.message, 'error');
+            }
+        }
+
+        async function changePassword() {
+            clearAllAccountErrors();
+            
+            const currentPassword = document.getElementById('accountCurrentPassword').value;
+            const newPassword = document.getElementById('accountNewPassword').value;
+            const confirmPassword = document.getElementById('accountConfirmPassword').value;
+            
+            let hasError = false;
+            
+            // Validation
+            if (!currentPassword) {
+                showAccountError('accountCurrentPassword', 'accountCurrentPasswordError', 'Vui lòng nhập mật khẩu hiện tại');
+                hasError = true;
+            }
+            
+            if (!newPassword) {
+                showAccountError('accountNewPassword', 'accountNewPasswordError', 'Vui lòng nhập mật khẩu mới');
+                hasError = true;
+            } else if (newPassword.length < 6) {
+                showAccountError('accountNewPassword', 'accountNewPasswordError', 'Mật khẩu phải từ 6 ký tự trở lên');
+                hasError = true;
+            }
+            
+            if (!confirmPassword) {
+                showAccountError('accountConfirmPassword', 'accountConfirmPasswordError', 'Vui lòng xác nhận mật khẩu');
+                hasError = true;
+            } else if (newPassword !== confirmPassword) {
+                showAccountError('accountConfirmPassword', 'accountConfirmPasswordError', 'Mật khẩu xác nhận không khớp');
+                hasError = true;
+            }
+            
+            if (hasError) return;
+            
+            try {
+                const token = getToken();
+                if (!token) {
+                    showToast('Vui lòng đăng nhập lại', 'error');
+                    return;
+                }
+                
+                const response = await fetch(`${API_BASE_URL}/Auth/change-password`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        currentPassword: currentPassword,
+                        newPassword: newPassword
+                    })
+                });
+                
+                if (!response.ok) {
+                    const error = await parseJsonSafe(response) || {};
+                    
+                    if (response.status === 401 || (error.message && error.message.includes('Current password'))) {
+                        showAccountError('accountCurrentPassword', 'accountCurrentPasswordError', 'Mật khẩu hiện tại không đúng');
+                    } else {
+                        showToast(error.message || 'Đổi mật khẩu thất bại', 'error');
+                    }
+                    return;
+                }
+                
+                await parseJsonSafe(response);
+                
+                // Clear password fields
+                document.getElementById('accountCurrentPassword').value = '';
+                document.getElementById('accountNewPassword').value = '';
+                document.getElementById('accountConfirmPassword').value = '';
+                
+                showToast('Đổi mật khẩu thành công!', 'success');
+            } catch (error) {
+                console.error('Change password error:', error);
+                showToast('Lỗi: ' + error.message, 'error');
+            }
         }
 
         function toggleSubmenu(element) {
@@ -673,8 +1682,1734 @@
             loadCategories();
         }
 
+        function showRecipesPage() {
+            showSection('recipesSection');
+            loadRecipesPage();
+        }
+
+        function showInventoryPage() {
+            showSection('inventorySection');
+            loadInventoryPage();
+        }
+
         function showDashboard() {
             showSection('dashboardSection');
+        }
+
+        function showHRMPage() {
+            showSection('hrmSection');
+            loadHRMPage();
+        }
+
+        function showSettingsPage() {
+            showSection('settingsSection');
+            loadSettings();
+        }
+
+        function loadSettings() {
+            const stored = localStorage.getItem('systemSettings') || '{}';
+            const settings = JSON.parse(stored);
+            document.getElementById('settingsStoreName').value = settings.storeName || 'Aroma Cafe Hà Nội';
+            document.getElementById('settingsAddress').value = settings.address || '123 Phố Huế, Hai Bà Trưng, Hà Nội';
+            document.getElementById('settingsHotline').value = settings.hotline || '1900-XXXX';
+            document.getElementById('settingsEmail').value = settings.email || 'contact@aroma.vn';
+            document.getElementById('settingsVATRate').value = settings.vatRate || '8';
+            document.getElementById('settingsServiceCharge').value = settings.serviceCharge || '0';
+            document.getElementById('settingsCurrency').value = settings.currency || 'VND';
+            document.getElementById('maintenanceModeToggle').checked = settings.maintenanceMode || false;
+            updateMaintenanceStatus();
+            if (settings.logo) {
+                document.getElementById('logoPreview').innerHTML = settings.logo;
+            }
+        }
+
+        function saveSettings() {
+            const settings = {
+                storeName: document.getElementById('settingsStoreName').value,
+                address: document.getElementById('settingsAddress').value,
+                hotline: document.getElementById('settingsHotline').value,
+                email: document.getElementById('settingsEmail').value,
+                vatRate: parseFloat(document.getElementById('settingsVATRate').value),
+                serviceCharge: parseFloat(document.getElementById('settingsServiceCharge').value),
+                currency: document.getElementById('settingsCurrency').value,
+                maintenanceMode: document.getElementById('maintenanceModeToggle').checked,
+                logo: document.getElementById('logoPreview').innerHTML
+            };
+            localStorage.setItem('systemSettings', JSON.stringify(settings));
+            showToast('Settings saved successfully!', 'success');
+        }
+
+        function resetSettings() {
+            if (confirm('Are you sure you want to reset all settings to default?')) {
+                localStorage.removeItem('systemSettings');
+                loadSettings();
+                showToast('Settings reset to default', 'success');
+            }
+        }
+
+        function toggleMaintenanceMode() {
+            updateMaintenanceStatus();
+        }
+
+        function updateMaintenanceStatus() {
+            const isEnabled = document.getElementById('maintenanceModeToggle').checked;
+            const status = document.getElementById('maintenanceStatus');
+            if (isEnabled) {
+                status.textContent = 'Chế độ bảo trì: BẬT - Khách hàng không thể đặt hàng';
+                status.style.background = '#f8d7da';
+                status.style.color = '#721c24';
+            } else {
+                status.textContent = 'Chế độ bảo trì: TẮT';
+                status.style.background = '#d4edda';
+                status.style.color = '#155724';
+            }
+            status.style.display = 'block';
+        }
+
+        async function syncElasticSearch() {
+            const btn = document.getElementById('syncElasticBtn');
+            const status = document.getElementById('syncStatus');
+            btn.disabled = true;
+            status.className = 'sync-status loading';
+            status.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing data with ElasticSearch...';
+            
+            try {
+                const token = getToken();
+                if (!token) {
+                    throw new Error('No authentication token found');
+                }
+
+                const response = await fetch(`${API_BASE_URL}/Product/sync-elastic`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                status.className = 'sync-status success';
+                status.innerHTML = `<i class="fas fa-check-circle"></i> ElasticSearch synced successfully! ${result.message || ''}`;
+                showToast('ElasticSearch sync completed!', 'success');
+            } catch (error) {
+                console.error('ElasticSearch sync error:', error);
+                status.className = 'sync-status error';
+                status.innerHTML = `<i class="fas fa-times-circle"></i> Sync failed: ${error.message}`;
+                showToast('ElasticSearch sync failed: ' + error.message, 'error');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const logoInput = document.getElementById('logoUploadInput');
+            if (logoInput) {
+                logoInput.addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                            const img = new Image();
+                            img.onload = () => {
+                                const canvas = document.createElement('canvas');
+                                canvas.width = 100;
+                                canvas.height = 100;
+                                const ctx = canvas.getContext('2d');
+                                ctx.drawImage(img, 0, 0, 100, 100);
+                                const dataUrl = canvas.toDataURL('image/png');
+                                const preview = document.getElementById('logoPreview');
+                                preview.innerHTML = `<img src="${dataUrl}" style="width:100%; height:100%; object-fit:cover;">`;
+                            };
+                            img.src = event.target.result;
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+            }
+        });
+
+        let employees = [];
+        let hrmCurrentMode = 'add';
+        let hrmEditId = null;
+
+        function loadHRMPage() {
+            const stored = localStorage.getItem('hrmEmployees');
+            if (stored && stored !== '[]') {
+                employees = JSON.parse(stored);
+            }
+            if (!employees || employees.length === 0) {
+                employees = [
+                    { id: 1, fullName: 'Đinh Việt Dũng', phone: '0987654321', email: 'dinhdung@aroma.com', role: 'Admin', status: 'Active', isActive: true, baseSalary: '12,000,000 ₫', username: 'dinhdung' },
+                    { id: 2, fullName: 'Nguyễn Xuân Đạt', phone: '0123456789', email: 'xdat@aroma.com', role: 'Cashier', status: 'Active', isActive: true, baseSalary: '8,500,000 ₫', username: 'nguyendat' },
+                    { id: 3, fullName: 'Trần Thị Hoa', phone: '0555666777', email: 'tranhoa@aroma.com', role: 'Barista', status: 'Inactive', isActive: false, baseSalary: '7,000,000 ₫', username: 'tranhoa' },
+                    { id: 4, fullName: 'Phạm Thanh Thảo', phone: '0937549071', email: 'thao@aroma.com', role: 'Cashier', status: 'Active', isActive: true, baseSalary: '8,700,000 ₫', username: 'phamthao' },
+                    { id: 5, fullName: 'Hoàng Văn Nam', phone: '0981189122', email: 'hoangnam@aroma.com', role: 'Cashier', status: 'Active', isActive: true, baseSalary: '8,500,000 ₫', username: 'hoangnam' },
+                ];
+            }
+            document.getElementById('hrmSearchInput').value = '';
+            document.getElementById('hrmRoleFilter').value = 'All';
+            renderHRMTable();
+        }
+
+        function persistHRMData() {
+            localStorage.setItem('hrmEmployees', JSON.stringify(employees));
+        }
+
+        function applyHRMFilters() {
+            renderHRMTable();
+        }
+
+        function renderHRMTable() {
+            const roleFilter = document.getElementById('hrmRoleFilter').value;
+            const searchTerm = document.getElementById('hrmSearchInput').value.toLowerCase();
+            const filtered = employees.filter(emp => {
+                const matchesRole = roleFilter === 'All' || emp.role === roleFilter;
+                const matchesSearch = !searchTerm || emp.fullName.toLowerCase().includes(searchTerm) || emp.phone.includes(searchTerm);
+                return matchesRole && matchesSearch;
+            });
+
+            const tbody = document.getElementById('hrmTableBody');
+            tbody.innerHTML = filtered.length ? filtered.map(emp => {
+                return `<tr>
+                    <td>${emp.fullName}</td>
+                    <td><span class="role-chip">${emp.role}</span></td>
+                    <td>${emp.phone}</td>
+                    <td>${emp.email || '-'}</td>
+                    <td><span class="status-badge ${emp.isActive ? 'status-completed' : 'status-cancelled'}">${emp.isActive ? 'Active' : 'Inactive'}</span></td>
+                    <td>
+                        <div class="employee-actions">
+                            <button class="action-btn" onclick="openEmployeeModal('edit', ${emp.id})">Edit Profile</button>
+                            <button class="action-btn" onclick="resetEmployeePassword(${emp.id})">Reset Password</button>
+                            <button class="action-btn btn-danger" onclick="toggleEmployeeStatus(${emp.id})">${emp.isActive ? 'Deactivate Account' : 'Activate Account'}</button>
+                        </div>
+                    </td>
+                </tr>`;
+            }).join('') : '<tr><td colspan="6" class="empty-state">No employees match the current filter.</td></tr>';
+
+            const totalCount = employees.length;
+            const activeCount = employees.filter(emp => emp.isActive).length;
+            document.getElementById('hrmTotalCount').textContent = totalCount;
+            document.getElementById('hrmActiveCount').textContent = activeCount;
+        }
+
+        function openEmployeeModal(mode = 'add', id = null) {
+            hrmCurrentMode = mode;
+            hrmEditId = id;
+            const modal = document.getElementById('employeeModal');
+            const title = document.getElementById('employeeModalTitle');
+            const submitButton = document.getElementById('employeeModalSubmit');
+            const passwordRow = document.getElementById('employeePasswordRow');
+
+            if (mode === 'edit') {
+                const employee = employees.find(emp => emp.id === id);
+                if (!employee) return;
+                title.textContent = 'Edit Employee Profile';
+                submitButton.textContent = 'Save Changes';
+                passwordRow.style.display = 'none';
+                document.getElementById('employeeFullName').value = employee.fullName;
+                document.getElementById('employeePhone').value = employee.phone;
+                document.getElementById('employeeEmail').value = employee.email || '';
+                document.getElementById('employeeUsername').value = employee.username;
+                document.getElementById('employeeRole').value = employee.role;
+                document.getElementById('employeeBaseSalary').value = employee.baseSalary || '';
+            } else {
+                title.textContent = 'Add New Employee';
+                submitButton.textContent = 'Create Employee';
+                passwordRow.style.display = 'block';
+                document.getElementById('employeeFullName').value = '';
+                document.getElementById('employeePhone').value = '';
+                document.getElementById('employeeEmail').value = '';
+                document.getElementById('employeeUsername').value = '';
+                document.getElementById('employeePassword').value = '';
+                document.getElementById('employeeRole').value = 'Cashier';
+                document.getElementById('employeeBaseSalary').value = '';
+            }
+
+            modal.classList.add('active');
+        }
+
+        function closeEmployeeModal() {
+            document.getElementById('employeeModal').classList.remove('active');
+        }
+
+        async function submitEmployeeForm() {
+            const fullName = document.getElementById('employeeFullName').value.trim();
+            const phone = document.getElementById('employeePhone').value.trim();
+            const email = document.getElementById('employeeEmail').value.trim();
+            const username = document.getElementById('employeeUsername').value.trim();
+            const password = document.getElementById('employeePassword').value.trim();
+            const role = document.getElementById('employeeRole').value;
+            const baseSalary = document.getElementById('employeeBaseSalary').value.trim();
+
+            if (!fullName || !phone || !username || !role) {
+                showToast('Full name, phone, username and role are required.', 'error');
+                return;
+            }
+
+            if (hrmCurrentMode === 'add' && password.length < 6) {
+                showToast('Password must be at least 6 characters.', 'error');
+                return;
+            }
+
+            const backendRole = role === 'Admin' ? 'Admin' : 'Staff';
+
+            if (hrmCurrentMode === 'add') {
+                try {
+                    const token = getToken();
+                    if (!token) {
+                        window.location.href = 'login.html';
+                        return;
+                    }
+
+                    const response = await fetch(`${API_BASE_URL}/Auth/register`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ Username: username, Password: password, FullName: fullName, Role: backendRole, PhoneNumber: phone })
+                    });
+
+                    if (!response.ok) {
+                        const errorPayload = await response.json().catch(() => null);
+                        const message = errorPayload?.message || 'Unable to create employee.';
+                        throw new Error(message);
+                    }
+
+                    const newEmployee = {
+                        id: employees.length ? Math.max(...employees.map(emp => emp.id)) + 1 : 1,
+                        fullName,
+                        phone,
+                        email,
+                        username,
+                        role,
+                        status: 'Active',
+                        isActive: true,
+                        baseSalary,
+                    };
+                    employees.unshift(newEmployee);
+                    persistHRMData();
+                    renderHRMTable();
+                    closeEmployeeModal();
+                    showToast('Employee created successfully.', 'success');
+                } catch (error) {
+                    console.error('Error creating employee:', error);
+                    showToast('Error creating employee: ' + (error.message || error), 'error');
+                }
+            } else {
+                const employee = employees.find(emp => emp.id === hrmEditId);
+                if (!employee) {
+                    showToast('Employee not found.', 'error');
+                    return;
+                }
+                employee.fullName = fullName;
+                employee.phone = phone;
+                employee.email = email;
+                employee.username = username;
+                employee.role = role;
+                employee.baseSalary = baseSalary;
+                persistHRMData();
+                renderHRMTable();
+                closeEmployeeModal();
+                showToast('Employee profile updated.', 'success');
+            }
+        }
+
+        function resetEmployeePassword(id) {
+            const employee = employees.find(emp => emp.id === id);
+            if (!employee) {
+                showToast('Employee not found.', 'error');
+                return;
+            }
+            const newPassword = prompt(`Reset password for ${employee.fullName}:`, 'Welcome123');
+            if (!newPassword) {
+                return;
+            }
+            showToast(`Password for ${employee.fullName} reset to '${newPassword}' (simulated).`, 'success');
+        }
+
+        function toggleEmployeeStatus(id) {
+            const employee = employees.find(emp => emp.id === id);
+            if (!employee) {
+                showToast('Employee not found.', 'error');
+                return;
+            }
+            employee.isActive = !employee.isActive;
+            employee.status = employee.isActive ? 'Active' : 'Inactive';
+            persistHRMData();
+            renderHRMTable();
+            showToast(`Employee ${employee.isActive ? 'activated' : 'deactivated'} successfully.`, 'success');
+        }
+
+        function exportTimesheet() {
+            const rows = employees.map(emp => [emp.fullName, emp.role, emp.phone, emp.email || '-', emp.status, emp.baseSalary || '-'].join(','));
+            const csv = ['Name,Role,Phone,Email,Status,Base Salary', ...rows].join('\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'employee_timesheet.csv';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        function showSuppliersPage() {
+            showSection('suppliersSection');
+            loadSuppliersPage();
+        }
+
+        async function loadSuppliersPage(showToastOnSuccess = true) {
+            const container = document.getElementById('supplierTableContainer');
+            const categorySelect = document.getElementById('supplierCategoryFilter');
+            const totalCount = document.getElementById('supplierTotalCount');
+            const activeCount = document.getElementById('supplierActiveCount');
+            const totalDebt = document.getElementById('supplierTotalDebt');
+
+            if (container) {
+                container.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Loading suppliers...</div>';
+            }
+            if (categorySelect) {
+                categorySelect.innerHTML = '<option value="">All supplier groups</option>';
+            }
+            if (totalCount) totalCount.textContent = '0';
+            if (activeCount) activeCount.textContent = '0';
+            if (totalDebt) totalDebt.textContent = '0 ₫';
+
+            try {
+                const token = getToken();
+                if (!token) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                const [suppliersResponse, inventoryResponse, transactionsResponse, categoriesResponse] = await Promise.all([
+                    fetch(`${API_BASE_URL}/Supplier`, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    }),
+                    fetch(`${API_BASE_URL}/inventory`, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    }),
+                    fetch(`${API_BASE_URL}/InventoryTransaction`, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    }),
+                    fetch(`${API_BASE_URL}/categories`, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                ]);
+
+                if (!suppliersResponse.ok || !inventoryResponse.ok || !transactionsResponse.ok || !categoriesResponse.ok) {
+                    throw new Error('Unable to load supplier or inventory data.');
+                }
+
+                suppliersData = await suppliersResponse.json();
+                allInventoryItems = await inventoryResponse.json();
+                supplierTransactions = await transactionsResponse.json();
+                allCategories = await categoriesResponse.json();
+
+                renderSupplierCategoryOptions();
+                renderSupplierSummary();
+                renderSupplierTable();
+
+                if (showToastOnSuccess) {
+                    showToast('Supplier module loaded successfully.', 'success');
+                }
+            } catch (error) {
+                console.error('Error loading suppliers page:', error);
+                if (container) {
+                    container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Error loading suppliers. Please refresh.</p></div>';
+                }
+                showToast('Error loading suppliers: ' + (error.message || error), 'error');
+            }
+        }
+
+        function renderSupplierCategoryOptions() {
+            const categorySelect = document.getElementById('supplierCategoryFilter');
+            if (!categorySelect) return;
+
+            const options = allCategories.map(category => {
+                const id = category.categoryId || category.CategoryId || category.id || '';
+                const name = category.name || category.Name || category.categoryName || category.CategoryName || 'General';
+                return `<option value="${id}">${name}</option>`;
+            }).join('');
+
+            categorySelect.innerHTML = '<option value="">All supplier groups</option>' + options;
+        }
+
+        function filterSupplierList() {
+            renderSupplierTable();
+        }
+
+        function renderSupplierSummary() {
+            const active = suppliersData.filter(item => (item.isActive ?? item.IsActive ?? true) === true).length;
+            const total = suppliersData.length;
+            const debt = suppliersData.reduce((sum, item) => {
+                const value = Number(item.balance || item.Balance || item.debt || item.Debt || 0);
+                return sum + (Number.isFinite(value) ? value : 0);
+            }, 0);
+
+            document.getElementById('supplierTotalCount').textContent = total;
+            document.getElementById('supplierActiveCount').textContent = active;
+            document.getElementById('supplierTotalDebt').textContent = debt.toLocaleString('vi-VN') + ' ₫';
+        }
+
+        function supplierHasTextMatch(item, query) {
+            const search = query.trim().toLowerCase();
+            if (!search) return true;
+            const name = (item.name || item.Name || '').toString().toLowerCase();
+            const phone = (item.phone || item.Phone || '').toString().toLowerCase();
+            const contact = (item.contactName || item.ContactName || '').toString().toLowerCase();
+            return name.includes(search) || phone.includes(search) || contact.includes(search);
+        }
+
+        function renderSupplierTable() {
+            const container = document.getElementById('supplierTableContainer');
+            if (!container) return;
+
+            const searchValue = document.getElementById('supplierSearchInput')?.value || '';
+            const categoryValue = document.getElementById('supplierCategoryFilter')?.value || '';
+
+            let filtered = suppliersData.filter(item => supplierHasTextMatch(item, searchValue));
+            if (categoryValue) {
+                filtered = filtered.filter(item => {
+                    const group = (item.categoryName || item.CategoryName || item.supplierType || item.SupplierType || item.group || item.Group || 'General').toString();
+                    return group === categoryValue.toString();
+                });
+            }
+
+            if (filtered.length === 0) {
+                container.innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i><p>No suppliers found.</p></div>';
+                return;
+            }
+
+            const rows = filtered.map(item => {
+                const id = item.supplierId || item.SupplierId || item.id || '';
+                const name = item.name || item.Name || 'Unknown';
+                const group = item.categoryName || item.CategoryName || item.supplierType || item.SupplierType || item.group || item.Group || 'General';
+                const contact = item.contactName || item.ContactName || '—';
+                const phone = item.phone || item.Phone || '—';
+                const email = item.email || item.Email || '—';
+                const address = item.address || item.Address || '—';
+                const balance = Number(item.balance || item.Balance || item.debt || item.Debt || 0);
+                const active = (item.isActive ?? item.IsActive ?? true) === true;
+                const statusClass = active ? 'active' : 'inactive';
+
+                return `
+                    <tr>
+                        <td>${id}</td>
+                        <td>${name}</td>
+                        <td>${group}</td>
+                        <td>${contact}</td>
+                        <td>${phone}</td>
+                        <td class="supplier-debt">${balance.toLocaleString('vi-VN')} ₫</td>
+                        <td><span class="supplier-status-badge ${statusClass}">${active ? 'Active' : 'Inactive'}</span></td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="action-btn" onclick="openSupplierModal('edit', ${id})">Supplier Profile</button>
+                                <button class="action-btn" onclick="openSupplierPurchaseHistory(${id})">Purchase History</button>
+                                <button class="action-btn pay-btn" onclick="openSupplierSettleModal(${id})">Settle Balance</button>
+                                <button class="action-btn btn-danger" onclick="toggleSupplierStatus(${id})">${active ? 'Deactivate' : 'Activate'}</button>
+                            </div>
+                        </td>
+                    </tr>`;
+            }).join('');
+
+            container.innerHTML = `
+                <div class="inventory-table-wrap">
+                    <table class="product-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Supplier</th>
+                                <th>Group</th>
+                                <th>Contact</th>
+                                <th>Phone</th>
+                                <th>Balance</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>`;
+        }
+
+        function openSupplierModal(mode, supplierId = null) {
+            const modal = document.getElementById('supplierModal');
+            const title = document.getElementById('supplierModalTitle');
+            const submitButton = document.getElementById('supplierModalSubmit');
+            const fields = {
+                name: document.getElementById('supplierNameInput'),
+                contact: document.getElementById('supplierContactInput'),
+                phone: document.getElementById('supplierPhoneInput'),
+                email: document.getElementById('supplierEmailInput'),
+                address: document.getElementById('supplierAddressInput'),
+                group: document.getElementById('supplierGroupInput'),
+                balance: document.getElementById('supplierBalanceInput'),
+                active: document.getElementById('supplierActiveInput')
+            };
+
+            if (!modal || !title || !submitButton) return;
+
+            if (mode === 'edit' && supplierId !== null) {
+                const supplier = suppliersData.find(item => Number(item.supplierId || item.SupplierId || item.id) === Number(supplierId));
+                if (!supplier) return;
+                currentSupplierEditId = supplierId;
+                title.textContent = 'Supplier Profile';
+                submitButton.textContent = 'Save Changes';
+                fields.name.value = supplier.name || supplier.Name || '';
+                fields.contact.value = supplier.contactName || supplier.ContactName || '';
+                fields.phone.value = supplier.phone || supplier.Phone || '';
+                fields.email.value = supplier.email || supplier.Email || '';
+                fields.address.value = supplier.address || supplier.Address || '';
+                fields.group.value = supplier.categoryName || supplier.CategoryName || supplier.supplierType || supplier.SupplierType || '';
+                fields.balance.value = Number(supplier.balance || supplier.Balance || supplier.debt || supplier.Debt || 0).toString();
+                fields.active.checked = (supplier.isActive ?? supplier.IsActive ?? true) === true;
+            } else {
+                currentSupplierEditId = null;
+                title.textContent = 'Add New Supplier';
+                submitButton.textContent = 'Add Supplier';
+                fields.name.value = '';
+                fields.contact.value = '';
+                fields.phone.value = '';
+                fields.email.value = '';
+                fields.address.value = '';
+                fields.group.value = '';
+                fields.balance.value = '0';
+                fields.active.checked = true;
+            }
+
+            modal.classList.add('active');
+        }
+
+        function closeSupplierModal() {
+            document.getElementById('supplierModal')?.classList.remove('active');
+        }
+
+        async function submitSupplierForm() {
+            const nameInput = document.getElementById('supplierNameInput');
+            const contactInput = document.getElementById('supplierContactInput');
+            const phoneInput = document.getElementById('supplierPhoneInput');
+            const emailInput = document.getElementById('supplierEmailInput');
+            const addressInput = document.getElementById('supplierAddressInput');
+            const groupInput = document.getElementById('supplierGroupInput');
+            const balanceInput = document.getElementById('supplierBalanceInput');
+            const activeInput = document.getElementById('supplierActiveInput');
+
+            if (!nameInput || !contactInput || !phoneInput || !emailInput || !addressInput || !groupInput || !balanceInput || !activeInput) return;
+            const name = nameInput.value.trim();
+            if (!name) {
+                showToast('Supplier name is required.', 'error');
+                return;
+            }
+            const payload = {
+                SupplierId: currentSupplierEditId,
+                Name: name,
+                ContactName: contactInput.value.trim(),
+                Phone: phoneInput.value.trim(),
+                Email: emailInput.value.trim(),
+                Address: addressInput.value.trim(),
+                SupplierType: groupInput.value.trim(),
+                Balance: Number(balanceInput.value || '0'),
+                IsActive: activeInput.checked
+            };
+
+            try {
+                const token = getToken();
+                if (!token) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                const url = `${API_BASE_URL}/Supplier`;
+                const method = currentSupplierEditId ? 'PUT' : 'POST';
+                const response = await fetch(url, {
+                    method,
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(errorText || 'Supplier save failed.');
+                }
+
+                closeSupplierModal();
+                await loadSuppliersPage(false);
+                showToast(currentSupplierEditId ? 'Supplier updated.' : 'Supplier added.', 'success');
+            } catch (error) {
+                console.error('Error saving supplier:', error);
+                showToast('Error saving supplier: ' + (error.message || error), 'error');
+            }
+        }
+
+        async function toggleSupplierStatus(supplierId) {
+            const supplier = suppliersData.find(item => Number(item.supplierId || item.SupplierId || item.id) === Number(supplierId));
+            if (!supplier) return;
+            const updated = {
+                SupplierId: supplierId,
+                IsActive: !(supplier.isActive ?? supplier.IsActive ?? true)
+            };
+            try {
+                const token = getToken();
+                if (!token) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+                const response = await fetch(`${API_BASE_URL}/Supplier`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(updated)
+                });
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(errorText || 'Status update failed.');
+                }
+                await loadSuppliersPage(false);
+                showToast('Supplier status updated.', 'success');
+            } catch (error) {
+                console.error('Error toggling supplier status:', error);
+                showToast('Error toggling status: ' + (error.message || error), 'error');
+            }
+        }
+
+        function getSupplierInventoryIds(supplierId) {
+            return allInventoryItems.filter(item => Number(item.supplierId || item.SupplierId) === Number(supplierId))
+                .map(item => item.inventoryId || item.InventoryId || item.id);
+        }
+
+        function getSupplierById(supplierId) {
+            return suppliersData.find(item => Number(item.supplierId || item.SupplierId || item.id) === Number(supplierId));
+        }
+
+        function openSupplierPurchaseHistory(supplierId) {
+            const supplier = getSupplierById(supplierId);
+            if (!supplier) {
+                showToast('Supplier not found.', 'error');
+                return;
+            }
+            const supplierName = supplier.name || supplier.Name || 'Supplier';
+            const historyModal = document.getElementById('supplierHistoryModal');
+            const title = document.getElementById('supplierHistoryModalTitle');
+            const body = document.getElementById('supplierHistoryTableBody');
+            if (!historyModal || !title || !body) return;
+
+            title.textContent = `Purchase History: ${supplierName}`;
+            const inventoryIds = getSupplierInventoryIds(supplierId);
+            const records = supplierTransactions.filter(tx => inventoryIds.includes(Number(tx.inventoryId || tx.InventoryId || tx.inventoryId)) && (tx.transactionType || tx.TransactionType || '').toLowerCase() === 'import');
+
+            if (records.length === 0) {
+                body.innerHTML = '<tr><td colspan="7" class="empty-state"><p>No purchase history found for this supplier.</p></td></tr>';
+            } else {
+                body.innerHTML = records.map(tx => {
+                    const itemName = tx.inventoryName || tx.InventoryName || 'Unknown';
+                    const qty = Number(tx.quantity || tx.Quantity || 0);
+                    const price = Number(tx.price || tx.Price || 0);
+                    const date = new Date(tx.transactionDate || tx.TransactionDate).toLocaleString('vi-VN');
+                    const note = tx.note || tx.Note || '—';
+                    return `
+                        <tr>
+                            <td>${itemName}</td>
+                            <td>${qty.toLocaleString('vi-VN')}</td>
+                            <td>${price.toLocaleString('vi-VN')} ₫</td>
+                            <td>${date}</td>
+                            <td>${note}</td>
+                            <td>${supplierName}</td>
+                        </tr>`;
+                }).join('');
+            }
+            historyModal.classList.add('active');
+        }
+
+        function closeSupplierHistoryModal() {
+            document.getElementById('supplierHistoryModal')?.classList.remove('active');
+        }
+
+        function openSupplierSettleModal(supplierId) {
+            const supplier = getSupplierById(supplierId);
+            if (!supplier) return;
+            supplierBalanceAdjustId = supplierId;
+            const name = supplier.name || supplier.Name || 'Supplier';
+            const balance = Number(supplier.balance || supplier.Balance || supplier.debt || supplier.Debt || 0);
+            document.getElementById('settleSupplierName').textContent = name;
+            document.getElementById('settleSupplierBalance').textContent = balance.toLocaleString('vi-VN') + ' ₫';
+            document.getElementById('settleAmountInput').value = '';
+            document.getElementById('supplierSettleModal')?.classList.add('active');
+        }
+
+        function closeSupplierSettleModal() {
+            document.getElementById('supplierSettleModal')?.classList.remove('active');
+        }
+
+        async function submitSupplierSettlement() {
+            const amountInput = document.getElementById('settleAmountInput');
+            if (!amountInput || !supplierBalanceAdjustId) return;
+            const amount = parseFloat(amountInput.value || '0');
+            if (!amount || amount <= 0) {
+                showToast('Please enter a valid payment amount.', 'error');
+                return;
+            }
+
+            const supplier = getSupplierById(supplierBalanceAdjustId);
+            if (!supplier) return;
+            const currentBalance = Number(supplier.balance || supplier.Balance || supplier.debt || supplier.Debt || 0);
+            const newBalance = Math.max(0, currentBalance - amount);
+
+            try {
+                const token = getToken();
+                if (!token) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+                const response = await fetch(`${API_BASE_URL}/Supplier`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ SupplierId: supplierBalanceAdjustId, Balance: newBalance })
+                });
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(errorText || 'Settle payment failed.');
+                }
+                closeSupplierSettleModal();
+                await loadSuppliersPage(false);
+                showToast('Payment recorded successfully.', 'success');
+            } catch (error) {
+                console.error('Error recording payment:', error);
+                showToast('Error recording payment: ' + (error.message || error), 'error');
+            }
+        }
+
+        async function loadInventoryPage(showToastOnSuccess = true) {
+            const inventoryContainer = document.getElementById('inventoryTableContainer');
+            const reportContainer = document.getElementById('inventoryReportContainer');
+            if (inventoryContainer) {
+                inventoryContainer.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Đang tải dữ liệu kho...</div>';
+            }
+            if (reportContainer) {
+                reportContainer.innerHTML = '';
+            }
+
+            try {
+                const token = getToken();
+                if (!token) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                const [inventoryResponse, transactionsResponse, suppliersResponse] = await Promise.all([
+                    fetch(`${API_BASE_URL}/inventory`, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    }),
+                    fetch(`${API_BASE_URL}/InventoryTransaction`, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    }),
+                    fetch(`${API_BASE_URL}/Supplier`, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                ]);
+
+                if (!inventoryResponse.ok || !transactionsResponse.ok || !suppliersResponse.ok) {
+                    throw new Error('Không tải được dữ liệu kho.');
+                }
+
+                inventoryData = await inventoryResponse.json();
+                inventoryTransactions = await transactionsResponse.json();
+                inventorySuppliers = await suppliersResponse.json();
+
+                renderInventorySummary(inventoryData);
+                renderInventoryTable(inventoryData);
+
+                if (showToastOnSuccess) {
+                    showToast('Đã tải dữ liệu kho hàng thành công', 'success');
+                }
+            } catch (error) {
+                console.error('Error loading inventory page:', error);
+                if (inventoryContainer) {
+                    inventoryContainer.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Lỗi khi tải dữ liệu kho. Vui lòng thử lại.</p></div>';
+                }
+                showToast('Lỗi khi tải dữ liệu kho: ' + (error.message || error), 'error');
+            }
+        }
+
+        function renderInventorySummary(items) {
+            const total = items.length;
+            const lowStock = items.filter(item => {
+                const quantity = Number(item.quantityInStock || item.QuantityInStock || 0);
+                const threshold = Number(item.minThreshold || item.MinThreshold || 0);
+                return quantity > 0 && quantity <= threshold;
+            }).length;
+            const outOfStock = items.filter(item => Number(item.quantityInStock || item.QuantityInStock || 0) <= 0).length;
+
+            document.getElementById('inventoryTotalItems').textContent = total;
+            document.getElementById('inventoryLowStockCount').textContent = lowStock;
+            document.getElementById('inventoryOutOfStockCount').textContent = outOfStock;
+        }
+
+        function getInventoryStatusBadge(item) {
+            const quantity = Number(item.quantityInStock || item.QuantityInStock || 0);
+            const threshold = Number(item.minThreshold || item.MinThreshold || 0);
+            if (quantity <= 0) return { text: 'Out of Stock', className: 'out-of-stock' };
+            if (quantity <= threshold) return { text: 'Low Stock', className: 'low-stock' };
+            return { text: 'In Stock', className: 'in-stock' };
+        }
+
+        function renderInventoryTable(items) {
+            const container = document.getElementById('inventoryTableContainer');
+            if (!container) return;
+
+            let filteredItems = items;
+            if (lowStockFilterActive) {
+                filteredItems = items.filter(item => {
+                    const quantity = Number(item.quantityInStock || item.QuantityInStock || 0);
+                    const threshold = Number(item.minThreshold || item.MinThreshold || 0);
+                    return quantity <= threshold;
+                });
+            }
+
+            if (!filteredItems || filteredItems.length === 0) {
+                container.innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i><p>Không có nguyên liệu phù hợp.</p></div>';
+                return;
+            }
+
+            const rows = filteredItems.map(item => {
+                const id = item.inventoryId || item.InventoryId || item.id || '';
+                const name = item.name || item.Name || '';
+                const quantity = Number(item.quantityInStock || item.QuantityInStock || 0);
+                const unit = item.unit || item.Unit || '';
+                const threshold = Number(item.minThreshold || item.MinThreshold || 0);
+                const supplierName = item.supplierName || item.SupplierName || 'N/A';
+                const status = getInventoryStatusBadge(item);
+
+                return `
+                    <tr>
+                        <td>${id}</td>
+                        <td>${name}</td>
+                        <td>${quantity.toLocaleString('vi-VN')}</td>
+                        <td>${unit}</td>
+                        <td>${threshold.toLocaleString('vi-VN')}</td>
+                        <td><span class="badge ${status.className}">${status.text}</span></td>
+                        <td>${supplierName}</td>
+                        <td>
+                            <button class="action-btn" onclick="showInventoryHistory(${id})">History</button>
+                            <button class="action-btn" onclick="openStockAdjustmentModal(${id})">Adjustment</button>
+                            <button class="action-btn" onclick="openSupplierInfoModal(${id})">Supplier Info</button>
+                        </td>
+                    </tr>`;
+            }).join('');
+
+            container.innerHTML = `
+                <div class="inventory-table-wrap">
+                    <table class="product-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Tên nguyên liệu</th>
+                                <th>Số lượng</th>
+                                <th>Đơn vị</th>
+                                <th>Ngưỡng tối thiểu</th>
+                                <th>Trạng thái</th>
+                                <th>Nhà cung cấp</th>
+                                <th>Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>`;
+        }
+
+        function toggleLowStockFilter() {
+            lowStockFilterActive = !lowStockFilterActive;
+            const button = document.getElementById('lowStockFilterButton');
+            if (button) {
+                button.textContent = lowStockFilterActive ? 'Clear Low Stock Filter' : 'Low Stock Filter';
+            }
+            renderInventoryTable(inventoryData);
+        }
+
+        function openInventoryTransactionModal(type) {
+            const modal = document.getElementById('inventoryTransactionModal');
+            const title = document.getElementById('inventoryTransactionModalTitle');
+            const typeInput = document.getElementById('inventoryTransactionTypeInput');
+            const itemSelect = document.getElementById('inventoryTransactionItemSelect');
+            const quantityInput = document.getElementById('inventoryTransactionQuantityInput');
+            const priceInput = document.getElementById('inventoryTransactionPriceInput');
+            const noteInput = document.getElementById('inventoryTransactionNoteInput');
+
+            if (!modal || !title || !typeInput || !itemSelect || !quantityInput || !priceInput || !noteInput) return;
+            title.textContent = type === 'Import' ? 'Stock In' : 'Stock Out';
+            typeInput.value = type;
+            quantityInput.value = '';
+            priceInput.value = '0';
+            noteInput.value = '';
+            itemSelect.innerHTML = '<option value="">Chọn nguyên liệu</option>' + inventoryData.map(item => {
+                const id = item.inventoryId || item.InventoryId || item.id || '';
+                const name = item.name || item.Name || '';
+                return `<option value="${id}">${name}</option>`;
+            }).join('');
+            modal.classList.add('active');
+        }
+
+        function closeInventoryTransactionModal() {
+            document.getElementById('inventoryTransactionModal')?.classList.remove('active');
+        }
+
+        async function submitInventoryTransaction() {
+            const typeInput = document.getElementById('inventoryTransactionTypeInput');
+            const itemSelect = document.getElementById('inventoryTransactionItemSelect');
+            const quantityInput = document.getElementById('inventoryTransactionQuantityInput');
+            const priceInput = document.getElementById('inventoryTransactionPriceInput');
+            const noteInput = document.getElementById('inventoryTransactionNoteInput');
+
+            const inventoryId = parseInt(itemSelect?.value || '0', 10);
+            const type = typeInput?.value || 'Import';
+            const quantity = parseFloat(quantityInput?.value || '0');
+            const price = parseFloat(priceInput?.value || '0');
+            const note = noteInput?.value.trim() || '';
+
+            if (!inventoryId || !quantity || quantity <= 0) {
+                showToast('Vui lòng chọn nguyên liệu và nhập số lượng hợp lệ', 'error');
+                return;
+            }
+
+            try {
+                const token = getToken();
+                if (!token) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                const payload = {
+                    InventoryId: inventoryId,
+                    TransactionType: type,
+                    Quantity: quantity,
+                    Price: price || 0,
+                    Note: note
+                };
+
+                const response = await fetch(`${API_BASE_URL}/inventory/transaction`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(errorText || 'Lỗi khi tạo giao dịch kho');
+                }
+
+                closeInventoryTransactionModal();
+                await loadInventoryPage(false);
+                showToast('Giao dịch kho đã được tạo', 'success');
+            } catch (error) {
+                console.error('Error creating inventory transaction:', error);
+                showToast('Lỗi giao dịch kho: ' + (error.message || error), 'error');
+            }
+        }
+
+        function getInventoryById(inventoryId) {
+            return inventoryData.find(item => Number(item.inventoryId || item.InventoryId || item.id) === Number(inventoryId));
+        }
+
+        function showInventoryHistory(inventoryId) {
+            const item = getInventoryById(inventoryId);
+            if (!item) {
+                showToast('Không tìm thấy nguyên liệu', 'error');
+                return;
+            }
+            const inventoryName = item.name || item.Name || '';
+            const modal = document.getElementById('inventoryHistoryModal');
+            const title = document.getElementById('inventoryHistoryModalTitle');
+            const body = document.getElementById('inventoryHistoryTableBody');
+            if (!modal || !title || !body) return;
+
+            title.textContent = `Lịch sử giao dịch: ${inventoryName}`;
+            const filtered = inventoryTransactions.filter(tx => {
+                const txName = (tx.inventoryName || tx.InventoryName || '').toString().toLowerCase();
+                return txName === inventoryName.toString().toLowerCase();
+            });
+
+            if (filtered.length === 0) {
+                body.innerHTML = '<tr><td colspan="6" class="empty-state"><p>Không có lịch sử giao dịch cho mặt hàng này.</p></td></tr>';
+            } else {
+                body.innerHTML = filtered.map(tx => {
+                    const transactionType = tx.transactionType || tx.TransactionType || '';
+                    const quantity = Number(tx.quantity || tx.Quantity || 0);
+                    const unit = tx.unit || tx.Unit || '';
+                    const date = new Date(tx.transactionDate || tx.TransactionDate).toLocaleString('vi-VN');
+                    const staff = tx.staffName || tx.StaffName || '';
+                    const note = tx.note || tx.Note || '';
+                    return `
+                        <tr>
+                            <td>${transactionType}</td>
+                            <td>${quantity.toLocaleString('vi-VN')}</td>
+                            <td>${unit}</td>
+                            <td>${date}</td>
+                            <td>${staff}</td>
+                            <td>${note}</td>
+                        </tr>`;
+                }).join('');
+            }
+
+            modal.classList.add('active');
+        }
+
+        function closeInventoryHistoryModal() {
+            document.getElementById('inventoryHistoryModal')?.classList.remove('active');
+        }
+
+        function openStockAdjustmentModal(inventoryId) {
+            const item = getInventoryById(inventoryId);
+            if (!item) {
+                showToast('Không tìm thấy nguyên liệu', 'error');
+                return;
+            }
+            currentInventoryAdjustmentId = inventoryId;
+            const name = item.name || item.Name || '';
+            const quantity = Number(item.quantityInStock || item.QuantityInStock || 0);
+            document.getElementById('stockAdjustmentName') .textContent = name;
+            document.getElementById('stockAdjustmentCurrent') .textContent = quantity.toLocaleString('vi-VN');
+            document.getElementById('stockAdjustmentActual') .value = quantity;
+            document.getElementById('stockAdjustmentNote') .value = '';
+            document.getElementById('stockAdjustmentModal')?.classList.add('active');
+        }
+
+        function closeStockAdjustmentModal() {
+            document.getElementById('stockAdjustmentModal')?.classList.remove('active');
+        }
+
+        async function submitStockAdjustment() {
+            const actualInput = document.getElementById('stockAdjustmentActual');
+            const noteInput = document.getElementById('stockAdjustmentNote');
+            const inventoryId = currentInventoryAdjustmentId;
+            if (!inventoryId) {
+                showToast('Không có nguyên liệu đang chỉnh sửa', 'error');
+                return;
+            }
+            const actualQuantity = parseFloat(actualInput?.value || '0');
+            if (Number.isNaN(actualQuantity) || actualQuantity < 0) {
+                showToast('Vui lòng nhập số lượng thực tế hợp lệ', 'error');
+                return;
+            }
+            const item = getInventoryById(inventoryId);
+            if (!item) {
+                showToast('Không tìm thấy nguyên liệu', 'error');
+                return;
+            }
+            const currentQuantity = Number(item.quantityInStock || item.QuantityInStock || 0);
+            const diff = actualQuantity - currentQuantity;
+            if (diff === 0) {
+                showToast('Số lượng thực tế không thay đổi', 'info');
+                return;
+            }
+            const transactionType = diff > 0 ? 'Import' : 'Export';
+            const quantity = Math.abs(diff);
+            try {
+                const token = getToken();
+                if (!token) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+                const payload = {
+                    InventoryId: inventoryId,
+                    TransactionType: transactionType,
+                    Quantity: quantity,
+                    Price: 0,
+                    Note: noteInput?.value.trim() || 'Stock adjustment'
+                };
+                const response = await fetch(`${API_BASE_URL}/inventory/transaction`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(errorText || 'Lỗi khi điều chỉnh tồn kho');
+                }
+                closeStockAdjustmentModal();
+                await loadInventoryPage(false);
+                showToast('Đã cập nhật tồn kho', 'success');
+            } catch (error) {
+                console.error('Error stock adjustment:', error);
+                showToast('Lỗi điều chỉnh tồn kho: ' + (error.message || error), 'error');
+            }
+        }
+
+        async function openSupplierInfoModal(inventoryId) {
+            const item = getInventoryById(inventoryId);
+            if (!item) {
+                showToast('Không tìm thấy nguyên liệu', 'error');
+                return;
+            }
+            const supplierName = item.supplierName || item.SupplierName || '';
+            const title = document.getElementById('supplierInfoModalTitle');
+            const body = document.getElementById('supplierInfoBody');
+            if (!title || !body) return;
+            title.textContent = `Nhà cung cấp: ${supplierName || 'Chưa có'} `;
+            if (!supplierName) {
+                body.innerHTML = '<p>Không có thông tin nhà cung cấp cho mặt hàng này.</p>';
+            } else {
+                const supplier = inventorySuppliers.find(s => (s.name || s.Name || '').toString().toLowerCase() === supplierName.toString().toLowerCase());
+                if (supplier) {
+                    const phone = supplier.phone || supplier.Phone || 'N/A';
+                    const contact = supplier.contactPerson || supplier.ContactPerson || 'N/A';
+                    body.innerHTML = `
+                        <p><strong>Tên:</strong> ${supplier.name || supplier.Name}</p>
+                        <p><strong>Liên hệ:</strong> ${contact}</p>
+                        <p><strong>Số điện thoại:</strong> ${phone}</p>
+                    `;
+                } else {
+                    body.innerHTML = '<p>Không tìm thấy thông tin nhà cung cấp trong hệ thống.</p>';
+                }
+            }
+            document.getElementById('supplierInfoModal')?.classList.add('active');
+        }
+
+        function closeSupplierInfoModal() {
+            document.getElementById('supplierInfoModal')?.classList.remove('active');
+        }
+
+        async function loadInventoryReport() {
+            const reportContainer = document.getElementById('inventoryReportContainer');
+            if (!reportContainer) return;
+            reportContainer.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Đang tải báo cáo kho...</div>';
+            try {
+                const token = getToken();
+                if (!token) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+                const now = new Date();
+                const response = await fetch(`${API_BASE_URL}/inventory/report/summary?month=${now.getMonth() + 1}&year=${now.getFullYear()}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                if (!response.ok) {
+                    throw new Error('Không tải được báo cáo kho.');
+                }
+                const report = await response.json();
+                if (!report || report.length === 0) {
+                    reportContainer.innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i><p>Không có dữ liệu báo cáo.</p></div>';
+                    return;
+                }
+                reportContainer.innerHTML = `
+                    <div class="inventory-info-panel">
+                        <h3>Báo cáo tồn kho tháng ${now.getMonth()+1}/${now.getFullYear()}</h3>
+                        <div class="inventory-table-wrap">
+                            <table class="product-table">
+                                <thead>
+                                    <tr>
+                                        <th>Nguyên liệu</th>
+                                        <th>Đầu kỳ</th>
+                                        <th>Nhập</th>
+                                        <th>Xuất</th>
+                                        <th>Cuối kỳ</th>
+                                        <th>Đơn vị</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${report.map(row => `
+                                        <tr>
+                                            <td>${row.inventoryName || row.InventoryName || ''}</td>
+                                            <td>${Number(row.openingStock || row.OpeningStock || 0).toLocaleString('vi-VN')}</td>
+                                            <td>${Number(row.totalImport || row.TotalImport || 0).toLocaleString('vi-VN')}</td>
+                                            <td>${Number(row.totalExport || row.TotalExport || 0).toLocaleString('vi-VN')}</td>
+                                            <td>${Number(row.closingStock || row.ClosingStock || 0).toLocaleString('vi-VN')}</td>
+                                            <td>${row.unit || row.Unit || ''}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>`;
+            } catch (error) {
+                console.error('Error loading inventory report:', error);
+                reportContainer.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Lỗi tải báo cáo kho.</p></div>';
+                showToast('Lỗi tải báo cáo kho: ' + (error.message || error), 'error');
+            }
+        }
+
+        function closeInventoryModalById(id) {
+            document.getElementById(id)?.classList.remove('active');
+        }
+
+        function closeInventoryTransactionModalById() {
+            closeInventoryModalById('inventoryTransactionModal');
+        }
+
+        function closeInventoryHistoryModalById() {
+            closeInventoryModalById('inventoryHistoryModal');
+        }
+
+        function closeStockAdjustmentModalById() {
+            closeInventoryModalById('stockAdjustmentModal');
+        }
+
+        function closeSupplierInfoModalById() {
+            closeInventoryModalById('supplierInfoModal');
+        }
+
+        function closeInventoryTransactionModal() { closeInventoryTransactionModalById(); }
+        function closeInventoryHistoryModal() { closeInventoryHistoryModalById(); }
+        function closeStockAdjustmentModal() { closeStockAdjustmentModalById(); }
+        function closeSupplierInfoModal() { closeSupplierInfoModalById(); }
+
+        async function loadRecipesPage(showToastOnSuccess = true) {
+            const productListContainer = document.getElementById('recipeProductListContainer');
+            const categoryFilter = document.getElementById('recipeCategoryFilter');
+            const searchInput = document.getElementById('recipeSearchInput');
+
+            if (productListContainer) {
+                productListContainer.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Đang tải danh sách sản phẩm...</div>';
+            }
+            if (categoryFilter) {
+                categoryFilter.innerHTML = '<option value="">Tất cả danh mục</option>';
+            }
+            if (searchInput) {
+                searchInput.value = '';
+            }
+
+            currentRecipeProduct = null;
+            currentRecipeRows = [];
+            deletedRecipeIds = [];
+            renderRecipeEditorPlaceholder();
+
+            try {
+                const token = getToken();
+                if (!token) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                const [productsResponse, categoriesResponse, inventoryResponse] = await Promise.all([
+                    fetch(`${API_BASE_URL}/product`, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    }),
+                    fetch(`${API_BASE_URL}/categories`, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    }),
+                    fetch(`${API_BASE_URL}/inventory`, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                ]);
+
+                if (!productsResponse.ok || !categoriesResponse.ok || !inventoryResponse.ok) {
+                    throw new Error('Không tải được dữ liệu Recipes');
+                }
+
+                recipeProducts = await productsResponse.json();
+                allCategories = await categoriesResponse.json();
+                allInventoryItems = await inventoryResponse.json();
+
+                populateRecipeCategoryFilter();
+                renderRecipeProductList(recipeProducts);
+
+                if (showToastOnSuccess) {
+                    showToast('Đã tải dữ liệu Recipes thành công', 'success');
+                }
+            } catch (error) {
+                console.error('Error loading recipes page:', error);
+                if (productListContainer) {
+                    productListContainer.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Lỗi khi tải dữ liệu Recipes. Vui lòng thử lại.</p></div>';
+                }
+                showToast('Lỗi khi tải dữ liệu Recipes: ' + (error.message || error), 'error');
+            }
+        }
+
+        function populateRecipeCategoryFilter() {
+            const categoryFilter = document.getElementById('recipeCategoryFilter');
+            if (!categoryFilter) return;
+
+            const options = allCategories.map(category => {
+                const id = category.categoryId || category.CategoryId || category.id;
+                const name = category.name || category.Name || category.categoryName || category.CategoryName;
+                return `<option value="${id}">${name}</option>`;
+            }).join('');
+
+            categoryFilter.innerHTML = '<option value="">Tất cả danh mục</option>' + options;
+        }
+
+        function filterRecipeProducts() {
+            const searchValue = document.getElementById('recipeSearchInput')?.value.trim().toLowerCase() || '';
+            const categoryValue = document.getElementById('recipeCategoryFilter')?.value || '';
+
+            const filtered = recipeProducts.filter(product => {
+                const productName = (product.name || product.Name || product.productName || product.ProductName || '').toString().toLowerCase();
+                const matchesSearch = !searchValue || productName.includes(searchValue);
+                const matchesCategory = !categoryValue || (product.categoryId || product.CategoryId || product.category_id || '').toString() === categoryValue.toString();
+                return matchesSearch && matchesCategory;
+            });
+
+            renderRecipeProductList(filtered);
+        }
+
+        function renderRecipeProductList(products) {
+            const productListContainer = document.getElementById('recipeProductListContainer');
+            if (!productListContainer) return;
+
+            if (!products || products.length === 0) {
+                productListContainer.innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i><p>Không tìm thấy sản phẩm.</p></div>';
+                return;
+            }
+
+            let html = `
+                <table class="product-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Tên sản phẩm</th>
+                            <th>Danh mục</th>
+                            <th>Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+
+            products.forEach(product => {
+                const productId = product.productId || product.ProductId || product.id || '';
+                const name = product.name || product.Name || product.productName || product.ProductName || '';
+                const categoryId = product.categoryId || product.CategoryId || product.category_id || '';
+                const categoryName = getCategoryName(categoryId);
+
+                html += `
+                        <tr>
+                            <td>${productId}</td>
+                            <td>${name}</td>
+                            <td>${categoryName}</td>
+                            <td><button class="action-btn" onclick="selectRecipeProduct(${productId})">Xem Công thức</button></td>
+                        </tr>`;
+            });
+
+            html += `
+                    </tbody>
+                </table>`;
+
+            productListContainer.innerHTML = html;
+        }
+
+        async function selectRecipeProduct(productId) {
+            currentRecipeProduct = recipeProducts.find(p => Number(p.productId || p.ProductId || p.id) === Number(productId)) || null;
+            currentRecipeRows = [];
+            deletedRecipeIds = [];
+            await loadRecipeDetailsForProduct(productId);
+        }
+
+        async function loadRecipeDetailsForProduct(productId) {
+            const editorContainer = document.getElementById('recipeEditorContainer');
+            if (editorContainer) {
+                editorContainer.style.display = 'block';
+            }
+
+            try {
+                const token = getToken();
+                if (!token) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                const response = await fetch(`${API_BASE_URL}/Recipe/product/${productId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Không tải được công thức cho sản phẩm này');
+                }
+
+                const recipeRows = await response.json();
+                currentRecipeRows = (recipeRows || []).map(item => ({
+                    recipeId: item.recipeId || item.RecipeId || 0,
+                    inventoryId: item.inventoryId || item.InventoryId || 0,
+                    inventoryName: item.inventoryName || item.InventoryName || '',
+                    quantityNeeded: item.quantityNeeded || item.QuantityNeeded || 0,
+                    unit: item.unit || item.Unit || ''
+                }));
+
+                renderRecipeEditor();
+            } catch (error) {
+                console.error('Error loading recipe details:', error);
+                showToast('Lỗi khi tải công thức: ' + (error.message || error), 'error');
+                renderRecipeEditorPlaceholder();
+            }
+        }
+
+        function renderRecipeEditorPlaceholder() {
+            const placeholder = document.getElementById('recipeDetailPlaceholder');
+            const editorContainer = document.getElementById('recipeEditorContainer');
+            if (placeholder) {
+                placeholder.style.display = 'grid';
+            }
+            if (editorContainer) {
+                editorContainer.style.display = 'none';
+                editorContainer.innerHTML = '';
+            }
+        }
+
+        function renderRecipeEditor() {
+            const placeholder = document.getElementById('recipeDetailPlaceholder');
+            const editorContainer = document.getElementById('recipeEditorContainer');
+            if (!editorContainer) return;
+            if (placeholder) {
+                placeholder.style.display = 'none';
+            }
+            if (!currentRecipeProduct) {
+                renderRecipeEditorPlaceholder();
+                return;
+            }
+
+            const productId = currentRecipeProduct.productId || currentRecipeProduct.ProductId || currentRecipeProduct.id || '';
+            const productName = currentRecipeProduct.name || currentRecipeProduct.Name || currentRecipeProduct.productName || currentRecipeProduct.ProductName || 'Sản phẩm';
+            const categoryId = currentRecipeProduct.categoryId || currentRecipeProduct.CategoryId || currentRecipeProduct.category_id || '';
+            const categoryName = getCategoryName(categoryId);
+
+            const inventoryOptions = allInventoryItems.map(inventory => {
+                const id = inventory.inventoryId || inventory.InventoryId || inventory.id || '';
+                const name = inventory.name || inventory.Name || '';
+                const unit = inventory.unit || inventory.Unit || '';
+                return `<option value="${id}" data-unit="${unit}">${name} (${unit})</option>`;
+            }).join('');
+
+            let rowsHtml = '';
+            if (!currentRecipeRows || currentRecipeRows.length === 0) {
+                rowsHtml = '<div class="empty-state"><i class="fas fa-inbox"></i><p>Chưa có nguyên liệu nào trong công thức.</p></div>';
+            } else {
+                rowsHtml = `
+                    <table class="recipe-table">
+                        <thead>
+                            <tr>
+                                <th>Nguyên liệu</th>
+                                <th>Định mức</th>
+                                <th>Đơn vị</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>`;
+
+                currentRecipeRows.forEach((row, index) => {
+                    rowsHtml += `
+                            <tr>
+                                <td>${row.inventoryName}</td>
+                                <td><input class="quantity-input" type="number" min="0.001" step="0.01" value="${row.quantityNeeded || ''}" onchange="updateRecipeRowQuantity(${index}, this.value)"></td>
+                                <td>${row.unit || ''}</td>
+                                <td><button class="action-btn btn-danger remove-btn" type="button" onclick="removeRecipeRow(${index})">Xóa</button></td>
+                            </tr>`;
+                });
+
+                rowsHtml += `
+                        </tbody>
+                    </table>`;
+            }
+
+            editorContainer.innerHTML = `
+                <div class="recipe-panel">
+                    <div class="recipe-detail-header">
+                        <div>
+                            <h3>Công thức: ${productName}</h3>
+                            <p>Danh mục: ${categoryName}</p>
+                        </div>
+                        <button class="action-btn" type="button" onclick="renderRecipeEditorPlaceholder()">Chọn sản phẩm khác</button>
+                    </div>
+                    <div class="recipe-actions">
+                        <select id="recipeIngredientSelect">
+                            <option value="">Chọn nguyên liệu</option>
+                            ${inventoryOptions}
+                        </select>
+                        <button class="action-btn pay-btn" type="button" onclick="addRecipeIngredient()">+ Thêm Nguyên liệu</button>
+                    </div>
+                    <div id="recipeIngredientsTableContainer">${rowsHtml}</div>
+                    <div style="display:flex; justify-content:flex-end; gap: 12px; margin-top: 12px;">
+                        <button class="action-btn pay-btn" type="button" onclick="saveRecipe()">Lưu Công thức</button>
+                    </div>
+                </div>`;
+        }
+
+        function addRecipeIngredient() {
+            const select = document.getElementById('recipeIngredientSelect');
+            if (!select) return;
+            const inventoryId = parseInt(select.value, 10);
+            if (!inventoryId) {
+                showToast('Vui lòng chọn nguyên liệu trước khi thêm', 'error');
+                return;
+            }
+            if (!currentRecipeProduct) {
+                showToast('Vui lòng chọn sản phẩm trước khi thêm nguyên liệu', 'error');
+                return;
+            }
+            if (currentRecipeRows.some(row => Number(row.inventoryId) === inventoryId)) {
+                showToast('Nguyên liệu đã tồn tại trong công thức', 'error');
+                return;
+            }
+
+            const inventory = allInventoryItems.find(item => Number(item.inventoryId || item.InventoryId || item.id) === inventoryId);
+            currentRecipeRows.push({
+                recipeId: null,
+                inventoryId: inventoryId,
+                inventoryName: inventory?.name || inventory?.Name || 'Nguyên liệu',
+                quantityNeeded: 0,
+                unit: inventory?.unit || inventory?.Unit || ''
+            });
+            renderRecipeEditor();
+        }
+
+        function updateRecipeRowQuantity(index, value) {
+            const quantity = parseFloat(value);
+            if (Number.isNaN(quantity)) {
+                currentRecipeRows[index].quantityNeeded = 0;
+            } else {
+                currentRecipeRows[index].quantityNeeded = quantity;
+            }
+        }
+
+        function removeRecipeRow(index) {
+            const row = currentRecipeRows[index];
+            if (row && row.recipeId) {
+                deletedRecipeIds.push(row.recipeId);
+            }
+            currentRecipeRows.splice(index, 1);
+            renderRecipeEditor();
+        }
+
+        async function saveRecipe() {
+            if (!currentRecipeProduct) {
+                showToast('Vui lòng chọn một sản phẩm trước khi lưu công thức', 'error');
+                return;
+            }
+            if (!currentRecipeRows || currentRecipeRows.length === 0) {
+                showToast('Công thức phải có ít nhất một nguyên liệu', 'error');
+                return;
+            }
+            const invalidRow = currentRecipeRows.find(row => !row.quantityNeeded || Number(row.quantityNeeded) <= 0);
+            if (invalidRow) {
+                showToast('Vui lòng nhập định mức lớn hơn 0 cho tất cả nguyên liệu', 'error');
+                return;
+            }
+
+            const productId = currentRecipeProduct.productId || currentRecipeProduct.ProductId || currentRecipeProduct.id;
+            try {
+                const token = getToken();
+                if (!token) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                const requests = [];
+
+                deletedRecipeIds.forEach(recipeId => {
+                    requests.push(fetch(`${API_BASE_URL}/Recipe/${recipeId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    }));
+                });
+
+                currentRecipeRows.forEach(row => {
+                    const payload = {
+                        ProductId: productId,
+                        InventoryId: row.inventoryId,
+                        QuantityNeeded: Number(row.quantityNeeded)
+                    };
+                    if (row.recipeId) {
+                        requests.push(fetch(`${API_BASE_URL}/Recipe/${row.recipeId}`, {
+                            method: 'PUT',
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ RecipeId: row.recipeId, ...payload })
+                        }));
+                    } else {
+                        requests.push(fetch(`${API_BASE_URL}/Recipe`, {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(payload)
+                        }));
+                    }
+                });
+
+                const responses = await Promise.all(requests);
+                for (const response of responses) {
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(errorText || 'Lỗi khi lưu công thức');
+                    }
+                }
+
+                deletedRecipeIds = [];
+                await loadRecipeDetailsForProduct(productId);
+                showToast('Lưu công thức thành công', 'success');
+            } catch (error) {
+                console.error('Error saving recipe:', error);
+                showToast('Lỗi lưu công thức: ' + (error.message || error), 'error');
+            }
         }
 
         // Products page
@@ -917,7 +3652,7 @@
 
         // Categories page
         async function loadCategories(showToastOnSuccess = true) {
-            const categoriesContainer = document.getElementById('categoryTableContainer');
+            const categoriesContainer = document.getElementById('categoriesTableContainer');
             categoriesContainer.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Đang tải dữ liệu...</div>';
 
             try {
@@ -927,7 +3662,7 @@
                     return;
                 }
 
-                const response = await fetch(`${API_BASE_URL}/categories`, {
+                const response = await fetch(`${API_BASE_URL}/Categories`, {
                     method: 'GET',
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -941,36 +3676,33 @@
                 }
 
                 const categories = await response.json();
+                window.allCategoriesData = categories;
 
-                let html = `
-                    <table class="product-table">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Tên danh mục</th>
-                                <th>Mô tả</th>
-                                <th>Thao tác</th>
-                            </tr>
-                        </thead>
-                        <tbody>`;
+                // Calculate stats
+                const totalCategories = categories.length;
+                let totalProducts = 0;
+                
+                // Try to get product count from products
+                try {
+                    const productsResponse = await fetch(`${API_BASE_URL}/Products`, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    if (productsResponse.ok) {
+                        const products = await productsResponse.json();
+                        totalProducts = products.length;
+                    }
+                } catch (e) {
+                    console.log('Could not fetch products');
+                }
 
-                categories.forEach(category => {
-                    html += `
-                        <tr>
-                            <td>${category.categoryId}</td>
-                            <td>${category.name}</td>
-                            <td>${category.description || ''}</td>
-                            <td>
-                                <button class="action-btn btn-danger" onclick="deleteCategory(${category.categoryId})">Xóa</button>
-                            </td>
-                        </tr>`;
-                });
+                document.getElementById('totalCategoriesCount').textContent = totalCategories;
+                document.getElementById('totalProductsCount').textContent = totalProducts;
 
-                html += `
-                        </tbody>
-                    </table>`;
-
-                categoriesContainer.innerHTML = html;
+                renderCategoriesTable(categories);
 
                 if (showToastOnSuccess && categories.length > 0) {
                     showToast(`Đã tải ${categories.length} danh mục`, 'success');
@@ -982,23 +3714,106 @@
             }
         }
 
-        async function addCategory() {
-            const nameInput = document.getElementById('categoryNameInput');
-            const descriptionInput = document.getElementById('categoryDescriptionInput');
-            const createdAtInput = document.getElementById('categoryCreatedAtInput');
+        function renderCategoriesTable(categories) {
+            const container = document.getElementById('categoriesTableContainer');
+            
+            if (!categories || categories.length === 0) {
+                container.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--muted);">Chưa có danh mục nào. Hãy thêm danh mục mới!</div>';
+                return;
+            }
 
-            const name = nameInput?.value.trim();
-            const description = descriptionInput?.value.trim();
+            let html = `
+                <table class="product-table" style="width: 100%;">
+                    <thead>
+                        <tr style="background: #f5f5f5;">
+                            <th style="padding: 14px; text-align: left;">Tên danh mục</th>
+                            <th style="padding: 14px; text-align: left;">Mô tả</th>
+                            <th style="padding: 14px; text-align: left;">Số món</th>
+                            <th style="padding: 14px; text-align: left;">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+
+            categories.forEach(category => {
+                const categoryId = category.categoryId || category.id || '';
+                const name = category.name || category.categoryName || 'Unnamed';
+                const description = category.description || '-';
+                const productCount = category.productCount || 0;
+                
+                html += `
+                    <tr style="border-bottom: 1px solid #e0e0e0;">
+                        <td style="padding: 14px; font-weight: 600;">${name}</td>
+                        <td style="padding: 14px; color: var(--muted);">${description}</td>
+                        <td style="padding: 14px; text-align: center;"><strong>${productCount}</strong></td>
+                        <td style="padding: 14px; display: flex; gap: 8px;">
+                            <button class="action-btn" onclick="editCategory('${categoryId}')" style="background: #e8f4f8; color: var(--accent); border: none; padding: 8px 12px; font-size: 0.9rem;">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                            <button class="action-btn" onclick="confirmDeleteCategory('${categoryId}', '${name.replace(/'/g, "\\'")}', ${productCount})" style="background: #ffe8e8; color: #dc3545; border: none; padding: 8px 12px; font-size: 0.9rem;">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </td>
+                    </tr>`;
+            });
+
+            html += `
+                    </tbody>
+                </table>`;
+
+            container.innerHTML = html;
+        }
+
+        function filterCategories() {
+            const searchText = document.getElementById('categoriesSearchInput').value.toLowerCase();
+            if (!window.allCategoriesData) return;
+            
+            const filtered = window.allCategoriesData.filter(cat => {
+                const name = (cat.name || cat.categoryName || '').toLowerCase();
+                const desc = (cat.description || '').toLowerCase();
+                return name.includes(searchText) || desc.includes(searchText);
+            });
+            
+            renderCategoriesTable(filtered);
+        }
+
+        let currentEditingCategoryId = null;
+
+        function openCategoryModal() {
+            currentEditingCategoryId = null;
+            document.getElementById('categoryModalTitle').textContent = 'Add New Category';
+            document.getElementById('categoryNameInputModal').value = '';
+            document.getElementById('categoryDescriptionInputModal').value = '';
+            document.getElementById('categoryModal').classList.add('active');
+        }
+
+        function closeCategoryModal() {
+            document.getElementById('categoryModal').classList.remove('active');
+            currentEditingCategoryId = null;
+        }
+
+        function editCategory(categoryId) {
+            const category = window.allCategoriesData.find(c => (c.categoryId || c.id) == categoryId);
+            if (!category) {
+                showToast('Không tìm thấy danh mục', 'error');
+                return;
+            }
+            
+            currentEditingCategoryId = categoryId;
+            document.getElementById('categoryModalTitle').textContent = 'Edit Category';
+            document.getElementById('categoryNameInputModal').value = category.name || category.categoryName || '';
+            document.getElementById('categoryDescriptionInputModal').value = category.description || '';
+            document.getElementById('categoryModal').classList.add('active');
+        }
+
+        async function saveCategoryModal() {
+            const name = document.getElementById('categoryNameInputModal').value.trim();
+            const description = document.getElementById('categoryDescriptionInputModal').value.trim();
 
             if (!name) {
                 showToast('Vui lòng nhập tên danh mục', 'error');
                 return;
             }
 
-            // Set created at
-            const now = new Date();
-            createdAtInput.value = now.toLocaleString('vi-VN');
-
             try {
                 const token = getToken();
                 if (!token) {
@@ -1006,64 +3821,52 @@
                     return;
                 }
 
-                const categoryData = {
-                    name: name,
-                    description: description || null
-                };
+                let url = `${API_BASE_URL}/Categories`;
+                let method = 'POST';
 
-                const response = await fetch(`${API_BASE_URL}/categories`, {
-                    method: 'POST',
+                if (currentEditingCategoryId) {
+                    url = `${API_BASE_URL}/Categories/${currentEditingCategoryId}`;
+                    method = 'PUT';
+                }
+
+                const response = await fetch(url, {
+                    method: method,
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(categoryData)
+                    body: JSON.stringify({
+                        name: name,
+                        description: description
+                    })
                 });
 
                 if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(errorText || 'Lỗi khi thêm danh mục');
+                    const error = await parseJsonSafe(response) || {};
+                    throw new Error(error.message || 'Lỗi lưu danh mục');
                 }
 
-                const result = await response.json();
-
+                showToast(currentEditingCategoryId ? 'Cập nhật danh mục thành công!' : 'Thêm danh mục thành công!', 'success');
+                closeCategoryModal();
                 await loadCategories(false);
-                clearCategoryForm();
-                showToast('Thêm danh mục thành công', 'success');
             } catch (error) {
-                console.error('Error adding category:', error);
-                showToast('Lỗi thêm danh mục: ' + (error.message || error), 'error');
+                console.error('Error saving category:', error);
+                showToast('Lỗi: ' + error.message, 'error');
             }
         }
 
-        function clearCategoryForm() {
-            document.getElementById('categoryIdInput').value = '';
-            document.getElementById('categoryNameInput').value = '';
-            document.getElementById('categoryDescriptionInput').value = '';
-            document.getElementById('categoryCreatedAtInput').value = '';
+        function confirmDeleteCategory(categoryId, name, productCount) {
+            let message = `Bạn có chắc muốn xóa danh mục "${name}"?`;
+            if (productCount > 0) {
+                message += `\\n\\nCanh báo: Danh mục này đang chứa ${productCount} sản phẩm. Hãy chuyển chúng sang danh mục khác trước khi xóa.`;
+            }
+            
+            if (confirm(message)) {
+                deleteCategory(categoryId);
+            }
         }
 
         async function deleteCategory(categoryId = null) {
-            let id;
-            if (categoryId !== null) {
-                id = categoryId;
-            } else {
-                const deleteInput = document.getElementById('deleteCategoryIdInput');
-                const value = deleteInput?.value.trim();
-                if (!value) {
-                    showToast('Vui lòng nhập Category ID để xóa', 'error');
-                    return;
-                }
-                id = parseInt(value, 10);
-                if (isNaN(id)) {
-                    showToast('Category ID phải là số để xóa từ hệ thống', 'error');
-                    return;
-                }
-            }
-
-            const confirmed = confirm('Bạn có thực sự muốn xoá danh mục hay không?');
-            if (!confirmed) return;
-
             try {
                 const token = getToken();
                 if (!token) {
@@ -1071,7 +3874,7 @@
                     return;
                 }
 
-                const response = await fetch(`${API_BASE_URL}/categories/${id}`, {
+                const response = await fetch(`${API_BASE_URL}/Categories/${categoryId}`, {
                     method: 'DELETE',
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -1080,21 +3883,19 @@
                 });
 
                 if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(errorText || 'Lỗi khi xóa danh mục');
+                    const error = await parseJsonSafe(response) || {};
+                    throw new Error(error.message || 'Lỗi xóa danh mục');
                 }
 
+                showToast('Xóa danh mục thành công!', 'success');
                 await loadCategories(false);
-                if (categoryId === null) {
-                    const deleteInput = document.getElementById('deleteCategoryIdInput');
-                    deleteInput.value = '';
-                }
-                showToast('Xóa danh mục thành công', 'success');
             } catch (error) {
                 console.error('Error deleting category:', error);
-                showToast('Lỗi xóa danh mục: ' + (error.message || error), 'error');
+                showToast('Lỗi: ' + error.message, 'error');
             }
         }
+
+        // Keep old functions for backward compatibility
 
         // Lấy token từ localStorage
         function getToken() {
