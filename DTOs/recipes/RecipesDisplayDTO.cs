@@ -3,6 +3,8 @@
     public class RecipeDisplayDTO
     {
         public int RecipeId { get; set; }
+        public int ProductId { get; set; }
+        public int InventoryId { get; set; }
         public string ProductName { get; set; } = string.Empty; // Tên món ăn
         public string InventoryName { get; set; } = string.Empty; // Tên nguyên liệu
         public decimal QuantityNeeded { get; set; }
