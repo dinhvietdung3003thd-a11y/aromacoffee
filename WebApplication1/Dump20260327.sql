@@ -53,6 +53,7 @@ CREATE TABLE `customers` (
   `full_name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
   `username` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `password_hash` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `token_version` int NOT NULL DEFAULT '0',
   `phone_number` varchar(15) COLLATE utf8mb4_unicode_ci NOT NULL,
   `points` int DEFAULT '0',
   `membership_level` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT 'Standard',
@@ -73,7 +74,7 @@ CREATE TABLE `customers` (
 
 LOCK TABLES `customers` WRITE;
 /*!40000 ALTER TABLE `customers` DISABLE KEYS */;
-INSERT INTO `customers` VALUES (1,'dung','dinn1','be4eb3720782e7b2181f5622c6e457d74d93a1de467f231409e474e63c31180e','0987766576',0,'Standard','string',0,'2026-03-10 06:27:21');
+INSERT INTO `customers` VALUES (1,'dung','dinn1','be4eb3720782e7b2181f5622c6e457d74d93a1de467f231409e474e63c31180e',0,'0987766576',0,'Standard','string',0,'2026-03-10 06:27:21');
 /*!40000 ALTER TABLE `customers` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -345,6 +346,7 @@ CREATE TABLE `users` (
   `user_id` int NOT NULL AUTO_INCREMENT,
   `username` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
   `password_hash` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `token_version` int NOT NULL DEFAULT '0',
   `full_name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
   `role` enum('Admin','Staff') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'Staff',
   `phone_number` varchar(15) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
@@ -363,7 +365,7 @@ CREATE TABLE `users` (
 
 LOCK TABLES `users` WRITE;
 /*!40000 ALTER TABLE `users` DISABLE KEYS */;
-INSERT INTO `users` VALUES (1,'dinn','a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3','dung','Admin','12356547657',1,'2026-02-26 08:37:54','2026-02-26 08:37:54'),(2,'dinn1','$2a$11$JcSZI8s1Aw8sRYKfs4C5dOK.at3wAIxwq5P.f1rF3KIEaUhsZ.Yqq','dung','Admin','231412342',1,'2026-03-18 08:11:16','2026-03-18 08:11:16');
+INSERT INTO `users` VALUES (1,'dinn','a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3',0,'dung','Admin','12356547657',1,'2026-02-26 08:37:54','2026-02-26 08:37:54'),(2,'dinn1','$2a$11$JcSZI8s1Aw8sRYKfs4C5dOK.at3wAIxwq5P.f1rF3KIEaUhsZ.Yqq',0,'dung','Admin','231412342',1,'2026-03-18 08:11:16','2026-03-18 08:11:16');
 /*!40000 ALTER TABLE `users` ENABLE KEYS */;
 UNLOCK TABLES;
 

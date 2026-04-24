@@ -10,5 +10,6 @@
         public string? Email { get; set; } 
         public int LoyaltyPoints { get; set; } = 0; 
         public DateTime CreatedAt { get; set; } = DateTime.Now; 
+        public int TokenVersion { get; set; }
     }
 }

@@ -43,7 +43,8 @@ namespace WebApplication1.services
                 {
                     new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
                     new Claim(ClaimTypes.Name, user.Username),
-                    new Claim(ClaimTypes.Role, user.Role ?? "Staff")
+                    new Claim(ClaimTypes.Role, user.Role ?? "Staff"),
+                    new Claim("tokenVersion", user.TokenVersion.ToString())
                 }),
                 Expires = DateTime.UtcNow.AddDays(7),
                 SigningCredentials = new SigningCredentials(
@@ -55,7 +56,7 @@ namespace WebApplication1.services
             return tokenHandler.WriteToken(token);
         }
 
-        private string GenerateCustomerJwtToken(int customerId, string username)
+        private string GenerateCustomerJwtToken(Customer customer)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
             var secretKey = _configuration["Jwt:Key"];
@@ -65,9 +66,10 @@ namespace WebApplication1.services
             {
                 Subject = new ClaimsIdentity(new[]
                 {
-                    new Claim(ClaimTypes.NameIdentifier, customerId.ToString()),
-                    new Claim(ClaimTypes.Name, username),
-                    new Claim(ClaimTypes.Role, "Customer")
+                    new Claim(ClaimTypes.NameIdentifier, customer.CustomerId.ToString()),
+                    new Claim(ClaimTypes.Name, customer.Username ?? string.Empty),
+                    new Claim(ClaimTypes.Role, "Customer"),
+                    new Claim("tokenVersion", customer.TokenVersion.ToString())
                 }),
                 Expires = DateTime.UtcNow.AddDays(7),
                 SigningCredentials = new SigningCredentials(
@@ -88,7 +90,8 @@ namespace WebApplication1.services
                                 full_name AS FullName,
                                 role AS Role,
                                 phone_number AS PhoneNumber,
-                                is_active AS IsActive
+                                is_active AS IsActive,
+                                token_version AS TokenVersion
                            FROM users
                            WHERE username = @u AND is_active = 1";
 
@@ -241,7 +244,8 @@ namespace WebApplication1.services
                                 loyalty_points AS LoyaltyPoints,
                                 phone_number AS PhoneNumber,
                                 email AS Email,
-                                created_at AS CreatedAt
+                                created_at AS CreatedAt,
+                                token_version AS TokenVersion
                            FROM customers
                            WHERE username = @u";
 
@@ -257,7 +261,7 @@ namespace WebApplication1.services
             bool isPasswordValid = VerifyPassword(request.Password, customer.PasswordHash);
             if (!isPasswordValid) return null;
 
-            string token = GenerateCustomerJwtToken(customer.CustomerId, customer.Username);
+            string token = GenerateCustomerJwtToken(customer);
 
             return new CustomerAccountDTO
             {
@@ -267,6 +271,140 @@ namespace WebApplication1.services
                 Token = token
             };
         }
+
+        public async Task<ChangePasswordResponse> ChangePasswordAsync(int actorId, string role, ChangePasswordRequest request)
+        {
+            if (request == null)
+                throw new ArgumentException("Dữ liệu không hợp lệ.");
+
+            if (string.IsNullOrWhiteSpace(request.CurrentPassword) ||
+                string.IsNullOrWhiteSpace(request.NewPassword) ||
+                string.IsNullOrWhiteSpace(request.ConfirmPassword))
+                throw new ArgumentException("Vui lòng nhập đầy đủ thông tin mật khẩu.");
+
+            if (request.NewPassword.Length < 6)
+                throw new ArgumentException("Mật khẩu mới phải có ít nhất 6 ký tự.");
+
+            if (request.NewPassword != request.ConfirmPassword)
+                throw new ArgumentException("Xác nhận mật khẩu không khớp.");
+
+            if (request.NewPassword == request.CurrentPassword)
+                throw new ArgumentException("Mật khẩu mới không được trùng mật khẩu hiện tại.");
+
+            if (string.Equals(role, "Customer", StringComparison.OrdinalIgnoreCase))
+            {
+                var customer = await _db.QueryFirstOrDefaultAsync<Customer>(
+                    @"SELECT customer_id AS CustomerId,
+                             username AS Username,
+                             password_hash AS PasswordHash,
+                             full_name AS FullName,
+                             loyalty_points AS LoyaltyPoints,
+                             token_version AS TokenVersion
+                      FROM customers
+                      WHERE customer_id = @Id",
+                    new { Id = actorId });
+
+                if (customer == null || string.IsNullOrEmpty(customer.PasswordHash) || string.IsNullOrEmpty(customer.Username))
+                    throw new UnauthorizedAccessException("Không tìm thấy tài khoản.");
+
+                if (!VerifyPassword(request.CurrentPassword, customer.PasswordHash))
+                    throw new UnauthorizedAccessException("Mật khẩu hiện tại không đúng.");
+
+                if (VerifyPassword(request.NewPassword, customer.PasswordHash))
+                    throw new ArgumentException("Mật khẩu mới không được trùng mật khẩu hiện tại.");
+
+                string hashedPassword = HashPassword(request.NewPassword);
+
+                var rows = await _db.ExecuteAsync(
+                    @"UPDATE customers
+                      SET password_hash = @PasswordHash,
+                          token_version = token_version + 1
+                      WHERE customer_id = @Id",
+                    new { PasswordHash = hashedPassword, Id = actorId });
+
+                if (rows == 0)
+                    throw new InvalidOperationException("Không thể cập nhật mật khẩu.");
+
+                var updatedCustomer = await _db.QueryFirstOrDefaultAsync<Customer>(
+                    @"SELECT customer_id AS CustomerId,
+                             username AS Username,
+                             token_version AS TokenVersion
+                      FROM customers
+                      WHERE customer_id = @Id",
+                    new { Id = actorId });
+
+                if (updatedCustomer == null || string.IsNullOrEmpty(updatedCustomer.Username))
+                    throw new InvalidOperationException("Không thể tạo token mới.");
+
+                string newToken = GenerateCustomerJwtToken(updatedCustomer);
+
+                return new ChangePasswordResponse
+                {
+                    Message = "Đổi mật khẩu thành công.",
+                    Token = newToken
+                };
+            }
+
+            if (string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(role, "Staff", StringComparison.OrdinalIgnoreCase))
+            {
+                var user = await _db.QueryFirstOrDefaultAsync<Account>(
+                    @"SELECT user_id AS UserId,
+                             username AS Username,
+                             password_hash AS PasswordHash,
+                             full_name AS FullName,
+                             role AS Role,
+                             is_active AS IsActive,
+                             token_version AS TokenVersion
+                      FROM users
+                      WHERE user_id = @Id AND is_active = 1",
+                    new { Id = actorId });
+
+                if (user == null || string.IsNullOrEmpty(user.PasswordHash))
+                    throw new UnauthorizedAccessException("Không tìm thấy tài khoản.");
+
+                if (!VerifyPassword(request.CurrentPassword, user.PasswordHash))
+                    throw new UnauthorizedAccessException("Mật khẩu hiện tại không đúng.");
+
+                if (VerifyPassword(request.NewPassword, user.PasswordHash))
+                    throw new ArgumentException("Mật khẩu mới không được trùng mật khẩu hiện tại.");
+
+                string hashedPassword = HashPassword(request.NewPassword);
+
+                var rows = await _db.ExecuteAsync(
+                    @"UPDATE users
+                      SET password_hash = @PasswordHash,
+                          token_version = token_version + 1
+                      WHERE user_id = @Id AND is_active = 1",
+                    new { PasswordHash = hashedPassword, Id = actorId });
+
+                if (rows == 0)
+                    throw new InvalidOperationException("Không thể cập nhật mật khẩu.");
+
+                var updatedUser = await _db.QueryFirstOrDefaultAsync<Account>(
+                    @"SELECT user_id AS UserId,
+                             username AS Username,
+                             role AS Role,
+                             token_version AS TokenVersion
+                      FROM users
+                      WHERE user_id = @Id AND is_active = 1",
+                    new { Id = actorId });
+
+                if (updatedUser == null)
+                    throw new InvalidOperationException("Không thể tạo token mới.");
+
+                string newToken = GenerateJwtToken(updatedUser);
+
+                return new ChangePasswordResponse
+                {
+                    Message = "Đổi mật khẩu thành công.",
+                    Token = newToken
+                };
+            }
+
+            throw new UnauthorizedAccessException("Vai trò không hợp lệ.");
+        }
+
         public async Task<bool> HasAnyAdminAsync()
         {
             var adminCount = await _db.ExecuteScalarAsync<int>(
