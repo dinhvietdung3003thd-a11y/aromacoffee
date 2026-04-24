@@ -5,8 +5,6 @@ namespace WebApplication1.DTOs.order
     public class CustomerCreateOrderDTO
     {
         public DateTime OrderDate { get; set; } = DateTime.Now;
-
-        [Range(1, int.MaxValue, ErrorMessage = "TableId không hợp lệ")]
         public int? TableId { get; set; }
 
         [StringLength(500, ErrorMessage = "Note tối đa 500 ký tự")]

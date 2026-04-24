@@ -13,5 +13,6 @@ namespace WebApplication1.services.interfaces
         Task<OrderUpdateResultDTO> UpdateStatusAsync(int id, string status);
         Task<int> DeleteAsync(int id);
         Task<IEnumerable<OrderDisplayDTO>> SearchAsync(string key);
+        Task<IEnumerable<OrderDisplayDTO>> GetOrdersByCustomerIdAsync(int customerId);
     }
 }
