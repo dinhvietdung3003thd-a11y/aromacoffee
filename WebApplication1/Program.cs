@@ -3,6 +3,7 @@ using Microsoft.IdentityModel.Tokens;
 using MySqlConnector;
 using Nest;
 using System.Data;
+using System.Security.Claims;
 using System.Text;
 using WebApplication1.services;
 using WebApplication1.services.interfaces;
@@ -13,6 +14,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // --- 1. Đăng ký các Service (Dependency Injection) ---
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<ITokenVersionValidator, TokenVersionValidator>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
@@ -45,6 +47,32 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
             ValidateLifetime = true,
             ClockSkew = TimeSpan.Zero // Quan trọng: Tránh lệch múi giờ gây lỗi 401 ngay lập tức
+        };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnTokenValidated = async context =>
+            {
+                var userIdClaim = context.Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var roleClaim = context.Principal?.FindFirst(ClaimTypes.Role)?.Value;
+                var tokenVersionClaim = context.Principal?.FindFirst("tokenVersion")?.Value;
+
+                if (!int.TryParse(userIdClaim, out var actorId) ||
+                    string.IsNullOrWhiteSpace(roleClaim) ||
+                    !int.TryParse(tokenVersionClaim, out var tokenVersion))
+                {
+                    context.Fail("Invalid token claims.");
+                    return;
+                }
+
+                var validator = context.HttpContext.RequestServices.GetRequiredService<ITokenVersionValidator>();
+                var isValid = await validator.ValidateAsync(actorId, roleClaim, tokenVersion);
+
+                if (!isValid)
+                {
+                    context.Fail("Token is no longer valid.");
+                }
+            }
         };
     });
 

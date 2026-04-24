@@ -9,6 +9,7 @@ namespace WebApplication1.services.interfaces
         Task<CustomerAccountDTO?> CustomerLoginAsync(LoginRequest request);
         Task<int> CustomerRegisterAsync(CustomerRegisterRequest request);
         Task<int> SetupFirstAdminAsync(SetupFirstAdminRequest request);
+        Task<ChangePasswordResponse> ChangePasswordAsync(int actorId, string role, ChangePasswordRequest request);
         Task<bool> HasAnyAdminAsync();
     }
 }
