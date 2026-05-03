@@ -31,6 +31,7 @@ services:
       - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+      - ./Dump20260327.sql:/docker-entrypoint-initdb.d/Dump20260327.sql
     networks:
       - appnet
 
