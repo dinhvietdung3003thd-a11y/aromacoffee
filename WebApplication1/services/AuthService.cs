@@ -1,4 +1,8 @@
-﻿using Dapper;
+﻿// AuthService.cs
+// Handles user authentication: JWT token generation, password hashing, staff/customer login/registration
+// Implements password verification with BCrypt and token versioning for logout-all functionality
+
+using Dapper;
 using Microsoft.IdentityModel.Tokens;
 using System.Data;
 using System.IdentityModel.Tokens.Jwt;
@@ -21,16 +25,20 @@ namespace WebApplication1.services
             _configuration = configuration;
         }
 
+        // Hash password using BCrypt with automatic salt generation for secure storage
         public string HashPassword(string password)
         {
             return BCrypt.Net.BCrypt.HashPassword(password);
         }
 
+        // Verify plain text password against stored BCrypt hash
         public bool VerifyPassword(string password, string hash)
         {
             return BCrypt.Net.BCrypt.Verify(password, hash);
         }
 
+        // Generate JWT token for staff/admin users with 7-day expiration
+        // Token includes user ID, role, and version number for logout-all functionality
         private string GenerateJwtToken(Account user)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
@@ -39,6 +47,7 @@ namespace WebApplication1.services
 
             var tokenDescriptor = new SecurityTokenDescriptor
             {
+                // Include user claims: ID, name, role, and token version for validation
                 Subject = new ClaimsIdentity(new[]
                 {
                     new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
@@ -56,6 +65,8 @@ namespace WebApplication1.services
             return tokenHandler.WriteToken(token);
         }
 
+        // Generate JWT token for customer users with 7-day expiration
+        // Separate token generation to ensure customer tokens have Customer role
         private string GenerateCustomerJwtToken(Customer customer)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
@@ -64,6 +75,7 @@ namespace WebApplication1.services
 
             var tokenDescriptor = new SecurityTokenDescriptor
             {
+                // Include customer claims with Customer role and version for tracking
                 Subject = new ClaimsIdentity(new[]
                 {
                     new Claim(ClaimTypes.NameIdentifier, customer.CustomerId.ToString()),
@@ -81,8 +93,10 @@ namespace WebApplication1.services
             return tokenHandler.WriteToken(token);
         }
 
+        // Authenticate staff/admin user: verify username exists, is active, and password matches
         public async Task<object?> LoginAsync(LoginRequest request)
         {
+            // Query for active user account with matching username
             string sql = @"SELECT 
                                 user_id AS UserId,
                                 username AS Username,
@@ -100,9 +114,11 @@ namespace WebApplication1.services
                 u = request.Username
             });
 
+            // User must exist and have password hash; return null if not found
             if (user == null) return null;
             if (string.IsNullOrEmpty(user.PasswordHash)) return null;
 
+            // Verify password against BCrypt hash
             bool isPasswordValid = VerifyPassword(request.Password, user.PasswordHash);
             if (!isPasswordValid) return null;
 
@@ -121,6 +137,8 @@ namespace WebApplication1.services
             };
         }
 
+        // Setup first admin account using database-level locking to prevent race conditions
+        // Only allowed once; returns -1 if admin already exists, -2 if username taken
         public async Task<int> SetupFirstAdminAsync(SetupFirstAdminRequest request)
         {
             const string lockName = "setup_first_admin_lock";
@@ -129,6 +147,7 @@ namespace WebApplication1.services
             if (_db.State != ConnectionState.Open)
                 _db.Open();
 
+            // Acquire database lock to prevent concurrent admin setup attempts
             var lockResult = await _db.ExecuteScalarAsync<long?>(
                 "SELECT GET_LOCK(@name, @timeout);",
                 new { name = lockName, timeout = lockTimeoutSeconds });
@@ -136,9 +155,11 @@ namespace WebApplication1.services
             if (lockResult != 1)
                 throw new InvalidOperationException("Không thể thiết lập admin đầu tiên vào lúc này.");
 
+            // Wrap in transaction to ensure atomic operation
             using var transaction = _db.BeginTransaction();
             try
             {
+                // Check if admin already exists; only one admin account allowed
                 var adminCount = await _db.ExecuteScalarAsync<int>(
                     "SELECT COUNT(*) FROM users WHERE role = 'Admin'",
                     transaction: transaction);
@@ -146,9 +167,10 @@ namespace WebApplication1.services
                 if (adminCount > 0)
                 {
                     transaction.Commit();
-                    return -1; // đã có admin đầu tiên
+                    return -1; // Admin already exists
                 }
 
+                // Verify username is not already in use
                 var existingUser = await _db.QueryFirstOrDefaultAsync<Account>(
                     "SELECT * FROM users WHERE username = @u",
                     new { u = request.Username },
@@ -157,11 +179,13 @@ namespace WebApplication1.services
                 if (existingUser != null)
                 {
                     transaction.Commit();
-                    return -2; // username đã tồn tại
+                    return -2; // Username already taken
                 }
 
+                // Hash password before storing in database
                 string hashedPassword = HashPassword(request.Password);
 
+                // Insert new admin user with hashed password
                 string sql = @"INSERT INTO users (username, password_hash, full_name, role, phone_number, is_active) 
                                VALUES (@Username, @PasswordHash, @FullName, 'Admin', @PhoneNumber, 1)";
 
@@ -183,6 +207,7 @@ namespace WebApplication1.services
             }
             finally
             {
+                // Release database lock to allow other requests to setup first admin
                 await _db.ExecuteAsync("SELECT RELEASE_LOCK(@name);", new { name = lockName });
             }
         }
@@ -411,6 +436,63 @@ namespace WebApplication1.services
                 "SELECT COUNT(*) FROM users WHERE role = 'Admin'");
 
             return adminCount > 0;
+        }
+        public async Task<ProfileResponse?> GetProfileAsync(int userId)
+        {
+            const string sql = @"
+        SELECT
+            user_id AS UserId,
+            username AS Username,
+            full_name AS FullName,
+            role AS Role,
+            phone_number AS PhoneNumber,
+            email AS Email,
+            avatar_url AS AvatarUrl
+        FROM users
+        WHERE user_id = @UserId
+          AND is_active = 1;
+    ";
+
+            return await _db.QueryFirstOrDefaultAsync<ProfileResponse>(
+                sql,
+                new { UserId = userId }
+            );
+        }
+
+        public async Task<ProfileResponse?> UpdateProfileAsync(
+            int userId,
+            UpdateProfileRequest request
+        )
+        {
+            const string updateSql = @"
+        UPDATE users
+        SET
+            full_name = @FullName,
+            phone_number = @PhoneNumber,
+            email = @Email,
+            avatar_url = @AvatarUrl
+        WHERE user_id = @UserId
+          AND is_active = 1;
+    ";
+
+            var affectedRows = await _db.ExecuteAsync(
+                updateSql,
+                new
+                {
+                    UserId = userId,
+                    request.FullName,
+                    request.PhoneNumber,
+                    request.Email,
+                    request.AvatarUrl
+                }
+            );
+
+            if (affectedRows == 0)
+            {
+                return null;
+            }
+
+            return await GetProfileAsync(userId);
         }
     }
 }

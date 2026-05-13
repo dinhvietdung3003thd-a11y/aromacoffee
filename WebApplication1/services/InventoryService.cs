@@ -1,4 +1,8 @@
-﻿using Dapper;
+﻿// InventoryService.cs
+// Manages inventory stock levels and transaction history (Import/Export operations)
+// Validates stock before export, maintains transaction audit trail, generates inventory reports
+
+using Dapper;
 using System.Data;
 using WebApplication1.DTOs.inventorys;
 
@@ -49,26 +53,32 @@ namespace WebApplication1.services
             return await _db.QueryFirstOrDefaultAsync<InventoryDisplayDTO>(sql, new { Id = id });
         }
 
+        // Create inventory transaction: Import (add stock) or Export (remove stock)
+        // Validates sufficient stock before export, wraps in transaction for atomicity
         public async Task<bool> CreateTransactionAsync(InventoryTransactionDTO dto, int userId)
         {
             if (dto == null)
                 throw new ArgumentException("Dữ liệu giao dịch kho không hợp lệ.");
 
+            // Validate required transaction fields
             if (dto.InventoryId <= 0 || dto.Quantity <= 0 || string.IsNullOrWhiteSpace(dto.TransactionType))
                 throw new ArgumentException("Thông tin giao dịch kho không hợp lệ.");
 
             string transactionType = dto.TransactionType.Trim();
 
+            // Only allow Import (add stock) or Export (remove stock) operations
             if (transactionType != "Import" && transactionType != "Export")
                 throw new ArgumentException("Loại giao dịch phải là Import hoặc Export.");
 
             if (_db.State != ConnectionState.Open)
                 _db.Open();
 
+            // Wrap in transaction to ensure stock update and transaction record are atomic
             using var transaction = _db.BeginTransaction();
 
             try
             {
+                // Fetch current stock level
                 const string getInventorySql = @"
                     SELECT quantity_in_stock
                     FROM inventory
@@ -80,12 +90,15 @@ namespace WebApplication1.services
                     transaction
                 );
 
+                // Inventory item must exist
                 if (currentStock == null)
                     throw new KeyNotFoundException("Nguyên liệu không tồn tại.");
 
+                // For export: validate sufficient stock is available
                 if (transactionType == "Export" && currentStock.Value < dto.Quantity)
                     throw new InvalidOperationException("Số lượng tồn kho không đủ để xuất.");
 
+                // Update inventory: Import adds stock, Export subtracts stock
                 string updateStockSql = transactionType == "Import"
                     ? @"
                         UPDATE inventory
@@ -109,6 +122,7 @@ namespace WebApplication1.services
                 if (updatedRows == 0)
                     throw new InvalidOperationException("Không thể cập nhật tồn kho.");
 
+                // Record transaction in audit trail (Import/Export with price, user, note)
                 const string insertTransactionSql = @"
                     INSERT INTO inventory_transactions
                     (
@@ -127,7 +141,7 @@ namespace WebApplication1.services
                         @Price,
                         @UserId,
                         @Note
-                    );";
+                    );\";
 
                 await _db.ExecuteAsync(
                     insertTransactionSql,

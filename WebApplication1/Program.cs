@@ -8,11 +8,12 @@ using System.Text;
 using WebApplication1.services;
 using WebApplication1.services.interfaces;
 
+// Configure Dapper to automatically map snake_case database columns to PascalCase C# properties
 Dapper.DefaultTypeMap.MatchNamesWithUnderscores = true;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --- 1. Đăng ký các Service (Dependency Injection) ---
+// 1. Register all services for dependency injection (scoped lifetime: new instance per HTTP request)
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ITokenVersionValidator, TokenVersionValidator>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
@@ -25,15 +26,16 @@ builder.Services.AddScoped<IRecipeService, RecipeService>();
 builder.Services.AddScoped<ISupplierService, SupplierService>();
 builder.Services.AddAuthorization();
 
-// --- 2. Cấu hình Database (MySQL + Dapper) ---
+// 2. Configure MySQL database connection (Dapper ORM)
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddScoped<IDbConnection>((sp) => new MySqlConnection(connectionString));
 
-// --- 3. Cấu hình Authentication ---
+// 3. Configure JWT authentication and token validation
 var secretKey = builder.Configuration["Jwt:Key"];
 if (string.IsNullOrWhiteSpace(secretKey))
     throw new Exception("Missing Jwt:Key");
-var key = Encoding.UTF8.GetBytes(secretKey); // Thống nhất dùng UTF8
+// Convert secret key to UTF-8 bytes for HMAC signature verification
+var key = Encoding.UTF8.GetBytes(secretKey);
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -46,17 +48,21 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateAudience = false,
 
             ValidateLifetime = true,
-            ClockSkew = TimeSpan.Zero // Quan trọng: Tránh lệch múi giờ gây lỗi 401 ngay lập tức
+            // Disable clock skew to enforce strict token expiration (prevent 401 errors from time drift)
+            ClockSkew = TimeSpan.Zero
         };
 
+        // Custom token validation: verify token version hasn't been invalidated
         options.Events = new JwtBearerEvents
         {
             OnTokenValidated = async context =>
             {
+                // Extract claims from JWT token
                 var userIdClaim = context.Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 var roleClaim = context.Principal?.FindFirst(ClaimTypes.Role)?.Value;
                 var tokenVersionClaim = context.Principal?.FindFirst("tokenVersion")?.Value;
 
+                // Validate all required claims are present and parseable
                 if (!int.TryParse(userIdClaim, out var actorId) ||
                     string.IsNullOrWhiteSpace(roleClaim) ||
                     !int.TryParse(tokenVersionClaim, out var tokenVersion))
@@ -65,6 +71,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                     return;
                 }
 
+                // Verify token version matches database version (logout-all mechanism)
                 var validator = context.HttpContext.RequestServices.GetRequiredService<ITokenVersionValidator>();
                 var isValid = await validator.ValidateAsync(actorId, roleClaim, tokenVersion);
 
@@ -87,7 +94,8 @@ builder.Services.AddCors(options =>
               .AllowAnyMethod();
     });
 });
-// --- 4. Cấu hình Elasticsearch ---
+// 5. Configure Elasticsearch for product search functionality
+// Elasticsearch provides fast full-text search independent of MySQL queries
 var esUri = builder.Configuration["Elasticsearch:Uri"] ?? "http://localhost:9200";
 var settings = new ConnectionSettings(new Uri(esUri))
     .DefaultIndex(builder.Configuration["Elasticsearch:DefaultIndex"] ?? "aroma_products")

@@ -1,4 +1,8 @@
-﻿using Dapper;
+﻿// OrderService.cs
+// Manages order creation, updates, and retrieval for both staff and customer orders
+// Handles table availability validation, atomic transaction processing, and server-side price calculation
+
+using Dapper;
 using Microsoft.AspNetCore.SignalR;
 using System;
 using System.Collections.Generic;
@@ -84,10 +88,8 @@ namespace WebApplication1.services
             return order;
         }
 
-        // =========================
-        // ADD (DINE-IN ONLY) - KHÔNG SHIP
-        // Server tự tính total từ DB price
-        // =========================
+        // Internal method: Create order with atomic transaction (dine-in only, no shipping)
+        // Validates table availability, inserts order with details, calculates total from database prices
         private async Task<(int OrderId, decimal TotalAmount)> AddInternalAsync(
     DateTime orderDate,
     int? tableId,
@@ -100,12 +102,15 @@ namespace WebApplication1.services
             if (_db.State != ConnectionState.Open)
                 _db.Open();
 
+            // Order must have at least one item
             if (details == null || details.Count == 0)
                 throw new ArgumentException("Order phải có ít nhất 1 sản phẩm.");
 
+            // Quantity must be positive
             if (details.Any(d => d.Quantity <= 0))
                 throw new ArgumentException("Quantity phải >= 1.");
 
+            // Validate status against allowed values; normalize to standard case
             if (!string.IsNullOrWhiteSpace(status))
             {
                 var normalizedStatus = status.Trim();
@@ -114,11 +119,12 @@ namespace WebApplication1.services
                 status = normalizedStatus;
             }
 
+            // Wrap in transaction to ensure atomic insertion of order + details
             using var transaction = _db.BeginTransaction();
 
             try
             {
-                // 1. Nếu có bàn thì kiểm tra bàn tồn tại và còn trống không
+                // Validate table exists and is available (prevent double-booking)
                 if (tableId.HasValue)
                 {
                     const string checkTableSql = @"
@@ -133,14 +139,16 @@ namespace WebApplication1.services
                         transaction
                     );
 
+                    // Table must exist
                     if (tableStatus == null)
                         throw new InvalidOperationException("Bàn không tồn tại.");
 
+                    // Table must be available (not occupied or reserved)
                     if (tableStatus != "Available")
                         throw new InvalidOperationException("Bàn đang được sử dụng.");
                 }
 
-                // 2. Insert order trước
+                // Insert order with initial total of 0 (will be calculated and updated below)
                 const string insertOrderSql = @"
             INSERT INTO orders
             (created_at, total_amount, user_id, table_id, status, customer_id)
@@ -164,7 +172,8 @@ namespace WebApplication1.services
                     transaction
                 );
 
-                // 3. Insert order details + tính total
+                // Insert order details and calculate total from current database prices
+                // (never trust client-provided prices for financial calculations)
                 const string productPriceSql = @"
             SELECT price
             FROM products
@@ -180,17 +189,21 @@ namespace WebApplication1.services
 
                 decimal totalAmount = 0;
 
+                // For each order detail: fetch current price from database and insert detail record
                 foreach (var d in details)
                 {
+                    // Retrieve product price from database (not from client request)
                     var unitPrice = await _db.QueryFirstOrDefaultAsync<decimal?>(
                         productPriceSql,
                         new { ProductId = d.ProductId },
                         transaction
                     );
 
+                    // Product must exist and be available
                     if (unitPrice == null)
                         throw new InvalidOperationException($"Sản phẩm có ID = {d.ProductId} không tồn tại hoặc không khả dụng.");
 
+                    // Calculate subtotal and accumulate to total amount
                     decimal subtotal = unitPrice.Value * d.Quantity;
                     totalAmount += subtotal;
 
