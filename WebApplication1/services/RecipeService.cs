@@ -14,7 +14,9 @@ namespace WebApplication1.services
         {
             string sql = @"SELECT r.recipe_id,
                           p.name AS ProductName,
+                          p.product_id AS ProductId,
                           i.name AS InventoryName,
+                          i.inventory_id AS InventoryId,
                           r.quantity_needed AS QuantityNeeded,
                           i.unit
                    FROM recipes r

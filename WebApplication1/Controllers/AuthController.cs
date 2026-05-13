@@ -118,5 +118,63 @@ namespace WebApplication1.Controllers
             var hasAdmin = await _authService.HasAnyAdminAsync();
             return Ok(new { hasAdmin });
         }
+
+        private int GetCurrentUserId()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+
+            if (userIdClaim == null)
+            {
+                throw new UnauthorizedAccessException("Invalid token.");
+            }
+
+            return int.Parse(userIdClaim.Value);
+        }
+
+        [Authorize(Roles = "Admin,Staff")]
+        [HttpGet("me")]
+        public async Task<IActionResult> GetProfile()
+        {
+            var userId = GetCurrentUserId();
+
+            var profile = await _authService.GetProfileAsync(userId);
+
+            if (profile == null)
+            {
+                return NotFound(new
+                {
+                    message = "User not found."
+                });
+            }
+
+            return Ok(profile);
+        }
+
+        [Authorize(Roles = "Admin,Staff")]
+        [HttpPut("me")]
+        public async Task<IActionResult> UpdateProfile(
+    [FromBody] UpdateProfileRequest request
+)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var userId = GetCurrentUserId();
+
+            var updatedProfile =
+                await _authService.UpdateProfileAsync(userId, request);
+
+            if (updatedProfile == null)
+            {
+                return NotFound(new
+                {
+                    message = "User not found."
+                });
+            }
+
+            return Ok(updatedProfile);
+        }
     }
 }

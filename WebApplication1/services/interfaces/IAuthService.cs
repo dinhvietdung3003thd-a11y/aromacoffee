@@ -11,5 +11,7 @@ namespace WebApplication1.services.interfaces
         Task<int> SetupFirstAdminAsync(SetupFirstAdminRequest request);
         Task<ChangePasswordResponse> ChangePasswordAsync(int actorId, string role, ChangePasswordRequest request);
         Task<bool> HasAnyAdminAsync();
+        Task<ProfileResponse?> GetProfileAsync(int userId);
+        Task<ProfileResponse?> UpdateProfileAsync(int userId, UpdateProfileRequest request);
     }
 }

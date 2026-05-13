@@ -1,4 +1,8 @@
-﻿using Dapper;
+﻿// ProductService.cs
+// Manages product catalog CRUD operations and Elasticsearch indexing for product search
+// Maintains dual-database strategy: MySQL for authoritative data, Elasticsearch for fast search queries
+
+using Dapper;
 using Nest;
 using System.Data;
 using WebApplication1.DTOs.product;
@@ -7,7 +11,7 @@ using WebApplication1.services.interfaces;
 
 namespace WebApplication1.services
 {
-    public class ProductService :   IProductService
+    public class ProductService : IProductService
     {
         private readonly IDbConnection _db;
         private readonly IElasticClient _elasticClient;

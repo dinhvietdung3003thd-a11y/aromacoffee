@@ -125,7 +125,7 @@ CREATE TABLE `inventory_transactions` (
   `quantity` decimal(15,2) NOT NULL,
   `price` decimal(15,2) DEFAULT '0.00',
   `transaction_date` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
-  `user_id` int NOT NULL,
+  `user_id` int DEFAULT NULL,
   `note` text COLLATE utf8mb4_unicode_ci,
   PRIMARY KEY (`transaction_id`),
   KEY `user_id` (`user_id`),
@@ -350,6 +350,8 @@ CREATE TABLE `users` (
   `full_name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
   `role` enum('Admin','Staff') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'Staff',
   `phone_number` varchar(15) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `email` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `avatar_url` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `is_active` tinyint(1) DEFAULT '1',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -365,7 +367,7 @@ CREATE TABLE `users` (
 
 LOCK TABLES `users` WRITE;
 /*!40000 ALTER TABLE `users` DISABLE KEYS */;
-INSERT INTO `users` VALUES (1,'dinn','a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3',0,'dung','Admin','12356547657',1,'2026-02-26 08:37:54','2026-02-26 08:37:54'),(2,'dinn1','$2a$11$JcSZI8s1Aw8sRYKfs4C5dOK.at3wAIxwq5P.f1rF3KIEaUhsZ.Yqq',0,'dung','Admin','231412342',1,'2026-03-18 08:11:16','2026-03-18 08:11:16');
+INSERT INTO `users` VALUES (1,'dinn','a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3',0,'dung','Admin','12356547657','NULL','NULL',1,'2026-02-26 08:37:54','2026-02-26 08:37:54'),(2,'dinn1','$2a$11$JcSZI8s1Aw8sRYKfs4C5dOK.at3wAIxwq5P.f1rF3KIEaUhsZ.Yqq',0,'dung','Admin','231412342',1,'2026-03-18 08:11:16','2026-03-18 08:11:16');
 /*!40000 ALTER TABLE `users` ENABLE KEYS */;
 UNLOCK TABLES;
 
