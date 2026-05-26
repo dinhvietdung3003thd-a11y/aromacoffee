@@ -141,7 +141,7 @@ namespace WebApplication1.services
                         @Price,
                         @UserId,
                         @Note
-                    );\";
+                    );";
 
                 await _db.ExecuteAsync(
                     insertTransactionSql,
